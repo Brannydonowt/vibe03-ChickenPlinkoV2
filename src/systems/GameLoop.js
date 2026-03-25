@@ -12,7 +12,8 @@ const STATES = {
 const STUCK_SPEED_THRESHOLD = 0.5;
 const STUCK_TIME_THRESHOLD = 2.0;
 const STUCK_WALL_MARGIN = 25;
-const STUCK_NUDGE_FORCE = 0.0015;
+const STUCK_NUDGE_FORCE = 0.15;
+const STUCK_NUDGE_UP = -0.1;
 
 export class GameLoop {
   constructor({ renderer, physics, camera, board, chicken, scoreManager, particleSystem, hud, audio, input, textures }) {
@@ -460,7 +461,8 @@ export class GameLoop {
 
     if (this._stuckTimer >= STUCK_TIME_THRESHOLD) {
       const nudgeDir = eggX > 0 ? -1 : 1;
-      this.physics.applyForce(this.egg.body, { x: nudgeDir * STUCK_NUDGE_FORCE, y: -0.001 });
+      this.physics.applyForce(this.egg.body, { x: nudgeDir * STUCK_NUDGE_FORCE, y: STUCK_NUDGE_UP });
+      this.particles.spawnFloatingText(eggX, -this.egg.getY(), 'BLAST OFF!', 48, '#FF4400');
       this._stuckTimer = 0;
     }
   }
