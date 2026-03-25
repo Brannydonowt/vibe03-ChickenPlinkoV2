@@ -18,6 +18,7 @@ export class Egg {
       friction: EGG.FRICTION,
       density: EGG.DENSITY,
       label: isDuplicate ? 'egg_duplicate' : 'egg',
+      collisionFilter: { group: -1 },
     });
     this.body.eggRef = this;
     physics.addBody(this.body);

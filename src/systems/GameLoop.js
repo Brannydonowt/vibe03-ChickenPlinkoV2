@@ -195,25 +195,15 @@ export class GameLoop {
     dupe.pegHits++;
     this.board.rippleFrom(peg);
 
-    const now = performance.now();
-    const { points, combo } = this.score.onPegHit(now);
+    this.score.currentRunScore += 1;
 
     const normalizedY = this.board.getNormalizedY(peg.y);
-    this.audio.pegHit(normalizedY, combo);
+    this.audio.pegHit(normalizedY, 1);
 
     this.particles.emitPegSpark(peg.x, -peg.y);
-
-    const textSize = combo > 3 ? 38 : combo > 1 ? 30 : 24;
-    const textColor = combo > 3 ? '#FF6B35' : combo > 1 ? '#FFD700' : '#DDDDDD';
-    this.particles.spawnFloatingText(
-      peg.x, -peg.y + 20,
-      `+${points}`,
-      textSize, textColor
-    );
+    this.particles.spawnFloatingText(peg.x, -peg.y + 20, '+1', 22, '#DDDDDD');
 
     this.hud.setScore(this.score.currentRunScore);
-    this.hud.setCombo(combo);
-    this.hud.setEdgeGlow(combo / SCORING.COMBO_MAX);
   }
 
   _handleDupeBinLand(bin, dupe) {
