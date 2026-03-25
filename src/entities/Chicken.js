@@ -17,6 +17,7 @@ export class Chicken {
 
     this.group = new THREE.Group();
     this.group.position.set(0, -CHICKEN.Y_POS, 5);
+    this.group.scale.x = -1;
 
     const size = CHICKEN.BODY_RADIUS * 2.8;
     const geo = new THREE.PlaneGeometry(size, size);
@@ -86,10 +87,10 @@ export class Chicken {
     this.group.position.x += CHICKEN.SPEED * this._dir * delta;
     if (this.group.position.x > this._maxX) {
       this._dir = -1;
-      this.group.scale.x = -1;
+      this.group.scale.x = 1;
     } else if (this.group.position.x < this._minX) {
       this._dir = 1;
-      this.group.scale.x = 1;
+      this.group.scale.x = -1;
     }
 
     const bobY = Math.sin(this._time * CHICKEN.BOB_SPEED) * CHICKEN.BOB_AMPLITUDE;
