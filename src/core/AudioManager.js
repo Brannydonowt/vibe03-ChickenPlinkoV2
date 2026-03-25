@@ -87,6 +87,12 @@ export class AudioManager {
     this._play(freq, 0.06, 'square', AUDIO.MASTER_VOLUME * 0.15);
   }
 
+  drumrollHit(intensity) {
+    const vol = AUDIO.MASTER_VOLUME * (0.15 + intensity * 0.25);
+    this._play(100 + intensity * 40, 0.04, 'triangle', vol);
+    this._noise(0.025, vol * 0.4);
+  }
+
   whoosh() {
     this._init();
     const ctx = this.ctx;

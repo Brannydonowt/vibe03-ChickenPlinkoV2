@@ -8,12 +8,18 @@ export class HUD {
     this._screenFlash = document.getElementById('screen-flash');
     this._edgeGlow = document.getElementById('edge-glow');
     this._goldPill = document.querySelector('.gold-pill');
+    this._viewport = document.getElementById('game-viewport');
   }
 
   setGold(value) {
     this._goldEl.textContent = value;
-    this._goldPill.classList.add('punch');
-    setTimeout(() => this._goldPill.classList.remove('punch'), 150);
+  }
+
+  throbGold() {
+    this._goldPill.classList.remove('throb');
+    void this._goldPill.offsetWidth;
+    this._goldPill.classList.add('throb');
+    setTimeout(() => this._goldPill.classList.remove('throb'), 120);
   }
 
   setScore(value) {
@@ -58,5 +64,77 @@ export class HUD {
     setTimeout(() => {
       this._screenFlash.style.transition = 'opacity 0.1s ease';
     }, duration * 1000 + 50);
+  }
+
+  spawnCoinFountain(screenX, screenY, numCoins, goldPerCoin, onCoinArrive, onAllDone) {
+    const pillRect = this._goldPill.getBoundingClientRect();
+    const vpRect = this._viewport.getBoundingClientRect();
+    const targetX = pillRect.left + pillRect.width / 2 - vpRect.left;
+    const targetY = pillRect.top + pillRect.height / 2 - vpRect.top;
+
+    const coins = [];
+    for (let i = 0; i < numCoins; i++) {
+      const el = document.createElement('div');
+      el.className = 'flying-coin';
+      el.style.left = `${screenX - 10}px`;
+      el.style.top = `${screenY - 10}px`;
+      el.style.transform = 'translate(0, 0) scale(1)';
+      this._viewport.appendChild(el);
+      coins.push(el);
+    }
+
+    requestAnimationFrame(() => {
+      for (const el of coins) {
+        const angle = Math.random() * Math.PI * 2;
+        const radius = 40 + Math.random() * 60;
+        const bx = Math.cos(angle) * radius;
+        const by = Math.sin(angle) * radius - 20;
+        el.style.transform = `translate(${bx}px, ${by}px) scale(1.1)`;
+      }
+    });
+
+    const burstSettleTime = 700;
+    const flyStagger = 100;
+    const flyDuration = 350;
+    let collected = 0;
+
+    setTimeout(() => {
+      coins.forEach((el, i) => {
+        setTimeout(() => {
+          const elRect = el.getBoundingClientRect();
+          const startX = elRect.left + elRect.width / 2 - vpRect.left;
+          const startY = elRect.top + elRect.height / 2 - vpRect.top;
+
+          el.style.transition = 'none';
+          el.style.left = `${startX - 10}px`;
+          el.style.top = `${startY - 10}px`;
+          el.style.transform = 'translate(0, 0) scale(1)';
+
+          const dx = targetX - startX;
+          const dy = targetY - startY;
+
+          const anim = el.animate([
+            { transform: 'translate(0, 0) scale(1)', opacity: 1 },
+            { transform: `translate(${dx * 0.5}px, ${dy * 0.5 - 30}px) scale(0.8)`, opacity: 1, offset: 0.5 },
+            { transform: `translate(${dx}px, ${dy}px) scale(0.3)`, opacity: 0.8 },
+          ], {
+            duration: flyDuration,
+            easing: 'ease-in',
+            fill: 'forwards',
+          });
+
+          anim.onfinish = () => {
+            el.remove();
+            collected++;
+            onCoinArrive(goldPerCoin, collected, numCoins);
+            this.throbGold();
+
+            if (collected >= numCoins && onAllDone) {
+              onAllDone();
+            }
+          };
+        }, i * flyStagger);
+      });
+    }, burstSettleTime);
   }
 }

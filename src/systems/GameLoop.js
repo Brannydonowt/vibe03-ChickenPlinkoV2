@@ -32,16 +32,16 @@ export class GameLoop {
     this.egg = null;
     this._stateTimer = 0;
     this._wobblePhase = 0;
-    this._coinQueue = [];
-    this._coinTimer = 0;
     this._landingGold = 0;
-    this._coinsCollected = 0;
-    this._totalCoins = 0;
     this._idleDelay = 0;
 
     this._stuckTimer = 0;
-    this._lastEggX = 0;
-    this._lastEggY = 0;
+    this._freezeTimer = 0;
+    this._drumrollTimer = 0;
+    this._coinFountainActive = false;
+
+    this._hatchEggX = 0;
+    this._hatchEggY = 0;
 
     this._onCollision = this._onCollision.bind(this);
     this.physics.on('collisionStart', this._onCollision);
@@ -120,6 +120,12 @@ export class GameLoop {
     this._landingGold = this.score.calculateLanding(bin.multiplier);
     this.state = STATES.LAND;
     this._stateTimer = 0;
+    this._freezeTimer = TIMING.LAND_FREEZE;
+
+    this.camera.shake(3.0);
+    if (this.egg) {
+      this.egg.setSquash(1.3, 0.7);
+    }
   }
 
   _handleFloorLand() {
@@ -129,6 +135,11 @@ export class GameLoop {
     this._landingGold = this.score.calculateLanding(1);
     this.state = STATES.LAND;
     this._stateTimer = 0;
+    this._freezeTimer = TIMING.LAND_FREEZE;
+    this.camera.shake(2.0);
+    if (this.egg) {
+      this.egg.setSquash(1.3, 0.7);
+    }
   }
 
   _enterIdle() {
@@ -165,6 +176,8 @@ export class GameLoop {
     this.state = STATES.HATCH;
     this._stateTimer = 0;
     this._wobblePhase = 0;
+    this._drumrollTimer = 0;
+    this._coinFountainActive = false;
 
     this.physics.setStatic(this.egg.body, true);
     this.camera.setTargetZoom(CAMERA.HATCH_ZOOM);
@@ -294,9 +307,23 @@ export class GameLoop {
   }
 
   _updateLand(delta) {
+    if (this._freezeTimer > 0) {
+      this._freezeTimer -= delta;
+
+      if (this.egg) {
+        this.camera.followX(this.egg.getX());
+        this.camera.followY(this.egg.getY());
+      }
+      return;
+    }
+
     this._stateTimer += delta;
 
     if (this.egg) {
+      const t = Math.min(this._stateTimer / TIMING.HATCH_DELAY, 1);
+      const sx = 1.3 + (1 - 1.3) * t;
+      const sy = 0.7 + (1 - 0.7) * t;
+      this.egg.setSquash(sx, sy);
       this.egg.update();
       this.camera.followX(this.egg.getX());
       this.camera.followY(this.egg.getY());
@@ -316,20 +343,37 @@ export class GameLoop {
     }
 
     if (this._stateTimer < TIMING.WOBBLE_DURATION) {
-      this._wobblePhase += delta * 25;
-      const intensity = this._stateTimer / TIMING.WOBBLE_DURATION;
+      const rawIntensity = this._stateTimer / TIMING.WOBBLE_DURATION;
+      const intensity = rawIntensity * rawIntensity;
+
+      this._wobblePhase += delta * (20 + intensity * 30);
       if (this.egg) {
-        const wobble = Math.sin(this._wobblePhase) * 0.2 * intensity;
+        const wobble = Math.sin(this._wobblePhase) * (0.15 + intensity * 0.25);
         this.egg.mesh.rotation.z = wobble;
       }
+
+      this.camera.shake(intensity * CAMERA.HATCH_SHAKE_MAX);
+
+      this._drumrollTimer -= delta;
+      const drumInterval = 0.15 - intensity * 0.11;
+      if (this._drumrollTimer <= 0) {
+        this.audio.drumrollHit(intensity);
+        this._drumrollTimer = drumInterval;
+      }
+
     } else if (this._stateTimer < TIMING.WOBBLE_DURATION + TIMING.CRACK_DURATION) {
       if (this.egg && this.egg._crackLines.length === 0) {
         this.egg.showCracks();
       }
+      this.camera.shake(CAMERA.HATCH_SHAKE_MAX * 0.8);
+
     } else if (this._stateTimer >= TIMING.WOBBLE_DURATION + TIMING.CRACK_DURATION) {
-      if (this.egg) {
+      if (this.egg && !this._coinFountainActive) {
         const ex = this.egg.getX();
         const ey = -this.egg.getY();
+
+        this._hatchEggX = ex;
+        this._hatchEggY = ey;
 
         this.hud.screenFlash();
         this.audio.hatch();
@@ -339,75 +383,49 @@ export class GameLoop {
         this.egg.destroy(this.renderer.scene);
         this.egg = null;
 
-        this._startCoinCollection(ex, ey);
+        this._startCoinFountain(ex, ey);
       }
     }
 
-    this._updateCoins(delta);
-  }
-
-  _startCoinCollection(x, y) {
-    this._coinQueue = [];
-    this._coinTimer = 0;
-    this._coinsCollected = 0;
-    const numCoins = Math.min(Math.max(this._landingGold, 3), 15);
-    this._totalCoins = numCoins;
-    const goldPerCoin = this._landingGold / numCoins;
-
-    for (let i = 0; i < numCoins; i++) {
-      this._coinQueue.push({
-        delay: i * (TIMING.COIN_DURATION / numCoins),
-        x: x + (Math.random() - 0.5) * 20,
-        y: y,
-        gold: Math.round(goldPerCoin),
-        emitted: false,
-      });
+    if (this._coinFountainActive) {
+      const elapsed = this._stateTimer - (TIMING.WOBBLE_DURATION + TIMING.CRACK_DURATION);
+      this.renderer.setBgBrightness(Math.max(0, 0.15 - elapsed * 0.2));
     }
   }
 
-  _updateCoins(delta) {
-    if (this._coinQueue.length === 0) return;
+  _startCoinFountain(worldX, worldY) {
+    this._coinFountainActive = true;
+    const screenPos = this.renderer.projectToScreen(worldX, worldY);
 
-    this._coinTimer += delta;
-    this.renderer.setBgBrightness(Math.max(0, 0.15 - this._coinTimer * 0.3));
+    const numCoins = Math.min(Math.max(Math.ceil(Math.sqrt(this._landingGold)), 3), 20);
+    const goldPerCoin = Math.round(this._landingGold / numCoins);
+    let totalCollected = 0;
 
-    let allDone = true;
-    for (const coin of this._coinQueue) {
-      if (coin.emitted) continue;
-      if (this._coinTimer >= coin.delay) {
-        coin.emitted = true;
-        this._coinsCollected++;
-
-        this.score.collectGold(coin.gold);
+    this.hud.spawnCoinFountain(
+      screenPos.x, screenPos.y,
+      numCoins, goldPerCoin,
+      (gold, collected, total) => {
+        totalCollected += gold;
+        const newTotal = Math.min(
+          this.score.totalGold + gold,
+          this.score.totalGold + this._landingGold - (totalCollected - gold)
+        );
+        this.score.collectGold(gold);
         this.hud.setGold(this.score.totalGold);
-        this.audio.coinCollect(this._coinsCollected, this._totalCoins);
+        this.audio.coinCollect(collected, total);
+      },
+      () => {
+        this._coinFountainActive = false;
+        this.renderer.setBgBrightness(0);
+        this.hud.hideScore();
 
-        this.particles.emit(coin.x, coin.y, 3, {
-          color: 0xFFD700,
-          speed: 100,
-          life: 0.3,
-          size: 3,
-          spread: Math.PI / 2,
-          angle: -Math.PI / 2,
-          gravity: 0,
-          drag: 0.9,
-        });
-      } else {
-        allDone = false;
+        setTimeout(() => {
+          if (this.state === STATES.HATCH) {
+            this._enterTransition();
+          }
+        }, 300);
       }
-    }
-
-    if (allDone) {
-      this._coinQueue = [];
-      this.renderer.setBgBrightness(0);
-      this.hud.hideScore();
-
-      setTimeout(() => {
-        if (this.state === STATES.HATCH) {
-          this._enterTransition();
-        }
-      }, 300);
-    }
+    );
   }
 
   _updateTransition(delta) {

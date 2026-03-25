@@ -85,6 +85,17 @@ export class Renderer {
     this.renderer.render(this.scene, this.camera);
   }
 
+  projectToScreen(worldX, worldY) {
+    const vec = new THREE.Vector3(worldX, worldY, 0);
+    vec.project(this.camera);
+    const w = this.container.clientWidth;
+    const h = this.container.clientHeight;
+    return {
+      x: (vec.x * 0.5 + 0.5) * w,
+      y: (-vec.y * 0.5 + 0.5) * h,
+    };
+  }
+
   getCanvas() {
     return this.renderer.domElement;
   }

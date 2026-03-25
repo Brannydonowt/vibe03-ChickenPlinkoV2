@@ -80,6 +80,22 @@
     .gold-pill.punch {
       transform: scale(1.2);
     }
+    .gold-pill.throb {
+      transform: scale(1.35);
+      box-shadow: 0 0 14px rgba(255,215,0,0.7);
+    }
+
+    .flying-coin {
+      position: absolute;
+      width: 20px; height: 20px;
+      background: radial-gradient(circle at 35% 35%, #FFE44D, #FFA500);
+      border-radius: 50%;
+      border: 2px solid #DAA520;
+      pointer-events: none;
+      z-index: 20;
+      box-shadow: 0 0 6px rgba(255,215,0,0.6);
+      transition: transform 0.4s cubic-bezier(0.2, 0.8, 0.3, 1);
+    }
 
     .score-display {
       background: rgba(0,0,0,0.35);
