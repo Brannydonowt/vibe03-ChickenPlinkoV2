@@ -9,6 +9,7 @@ import { ScoreManager } from './systems/ScoreManager.js';
 import { ParticleSystem } from './systems/ParticleSystem.js';
 import { GameLoop } from './systems/GameLoop.js';
 import { Chicken } from './entities/Chicken.js';
+import { Environment } from './systems/Environment.js';
 import { HUD } from './ui/HUD.js';
 
 async function init() {
@@ -24,6 +25,7 @@ async function init() {
   const scoreManager = new ScoreManager();
   const particleSystem = new ParticleSystem(renderer.scene);
   const board = new Board(renderer.scene, physics);
+  const environment = new Environment(renderer.scene, textures);
   const chicken = new Chicken(textures);
   renderer.scene.add(chicken.group);
   const hud = new HUD();
@@ -52,6 +54,7 @@ async function init() {
 
     physics.update(delta);
     gameLoop.update(delta);
+    environment.update(camera);
     renderer.render();
   }
 
