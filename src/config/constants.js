@@ -1,3 +1,7 @@
+export const DISPLAY = {
+  ASPECT: 9 / 16,
+};
+
 export const GAME = {
   WIDTH: 390,
   HEIGHT: 844,

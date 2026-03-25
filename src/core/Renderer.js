@@ -1,20 +1,15 @@
 import * as THREE from 'three';
-import { GAME } from '../config/constants.js';
+import { GAME, DISPLAY } from '../config/constants.js';
 
 export class Renderer {
   constructor(container) {
+    this.container = container;
     this.scene = new THREE.Scene();
 
-    const aspect = GAME.WIDTH / GAME.HEIGHT;
-    const halfW = GAME.WIDTH / 2;
     const halfH = GAME.HEIGHT / 2;
+    const halfW = halfH * DISPLAY.ASPECT;
     this.camera = new THREE.OrthographicCamera(-halfW, halfW, halfH, -halfH, 0.1, 1000);
     this.camera.position.z = 100;
-
-    this.baseLeft = -halfW;
-    this.baseRight = halfW;
-    this.baseTop = halfH;
-    this.baseBottom = -halfH;
 
     this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -69,29 +64,17 @@ export class Renderer {
   }
 
   _resize() {
-    const w = window.innerWidth;
-    const h = window.innerHeight;
+    const w = this.container.clientWidth;
+    const h = this.container.clientHeight;
+    if (w === 0 || h === 0) return;
     this.renderer.setSize(w, h);
 
-    const gameAspect = GAME.WIDTH / GAME.HEIGHT;
-    const windowAspect = w / h;
-
-    if (windowAspect > gameAspect) {
-      const visibleH = GAME.HEIGHT;
-      const visibleW = visibleH * windowAspect;
-      this.camera.left = -visibleW / 2;
-      this.camera.right = visibleW / 2;
-      this.camera.top = visibleH / 2;
-      this.camera.bottom = -visibleH / 2;
-    } else {
-      const visibleW = GAME.WIDTH;
-      const visibleH = visibleW / windowAspect;
-      this.camera.left = -visibleW / 2;
-      this.camera.right = visibleW / 2;
-      this.camera.top = visibleH / 2;
-      this.camera.bottom = -visibleH / 2;
-    }
-
+    const halfH = GAME.HEIGHT / 2;
+    const halfW = halfH * DISPLAY.ASPECT;
+    this.camera.left = -halfW;
+    this.camera.right = halfW;
+    this.camera.top = halfH;
+    this.camera.bottom = -halfH;
     this.camera.updateProjectionMatrix();
   }
 

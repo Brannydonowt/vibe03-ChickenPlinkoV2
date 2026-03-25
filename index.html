@@ -16,6 +16,15 @@
       -webkit-tap-highlight-color: transparent;
       user-select: none;
       -webkit-user-select: none;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    #game-viewport {
+      position: relative;
+      width: min(100vw, calc(100vh * 9 / 16));
+      height: min(100vh, calc(100vw * 16 / 9));
+      overflow: hidden;
     }
     #game {
       position: absolute;
@@ -150,6 +159,7 @@
   </style>
 </head>
 <body>
+  <div id="game-viewport">
   <div id="game"></div>
   <div id="hud">
     <div class="hud-top">
@@ -165,6 +175,7 @@
     <div class="tap-prompt" id="tap-prompt">TAP TO LAY EGG</div>
     <div class="screen-flash" id="screen-flash"></div>
     <div class="edge-glow" id="edge-glow"></div>
+  </div>
   </div>
   <script type="module" src="/src/main.js"></script>
 </body>

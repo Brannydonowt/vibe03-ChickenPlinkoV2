@@ -1,4 +1,4 @@
-import { CAMERA, GAME } from '../config/constants.js';
+import { CAMERA, GAME, DISPLAY } from '../config/constants.js';
 
 export class Camera {
   constructor(threeCamera) {
@@ -73,8 +73,8 @@ export class Camera {
       this.shakeIntensity = 0;
     }
 
-    const halfW = (GAME.WIDTH / 2) / this.zoom;
     const halfH = (GAME.HEIGHT / 2) / this.zoom;
+    const halfW = halfH * DISPLAY.ASPECT;
 
     this.cam.left = -halfW;
     this.cam.right = halfW;
