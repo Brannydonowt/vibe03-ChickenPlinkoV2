@@ -1,0 +1,98 @@
+import * as THREE from 'three';
+import { CHICKEN, GAME } from '../config/constants.js';
+
+const FLIP_INTERVAL = 0.15;
+
+export class Chicken {
+  constructor(textures) {
+    this._time = 0;
+    this._dir = 1;
+    this._laying = false;
+    this._layTimer = 0;
+    this._celebTimer = 0;
+    this._flipTimer = 0;
+    this._frameIndex = 0;
+
+    this._frames = [textures.chickenFly1, textures.chickenFly2];
+
+    this.group = new THREE.Group();
+    this.group.position.set(0, -CHICKEN.Y_POS, 5);
+
+    const size = CHICKEN.BODY_RADIUS * 2.8;
+    const geo = new THREE.PlaneGeometry(size, size);
+    const mat = new THREE.MeshBasicMaterial({
+      map: this._frames[0],
+      transparent: true,
+    });
+    this.sprite = new THREE.Mesh(geo, mat);
+    this.group.add(this.sprite);
+
+    this._minX = -GAME.WIDTH / 2 + 40;
+    this._maxX = GAME.WIDTH / 2 - 40;
+  }
+
+  getDropX() {
+    return this.group.position.x;
+  }
+
+  getDropY() {
+    return -this.group.position.y + CHICKEN.BODY_RADIUS + 5;
+  }
+
+  lay() {
+    this._laying = true;
+    this._layTimer = CHICKEN.LAY_DURATION;
+  }
+
+  celebrate() {
+    this._celebTimer = 0.6;
+  }
+
+  update(delta) {
+    this._time += delta;
+
+    this._flipTimer += delta;
+    if (this._flipTimer >= FLIP_INTERVAL) {
+      this._flipTimer -= FLIP_INTERVAL;
+      this._frameIndex = (this._frameIndex + 1) % this._frames.length;
+      this.sprite.material.map = this._frames[this._frameIndex];
+    }
+
+    if (this._laying) {
+      this._layTimer -= delta;
+      const t = 1 - (this._layTimer / CHICKEN.LAY_DURATION);
+      const squash = t < 0.5
+        ? 1 - 0.3 * (t * 2)
+        : 0.7 + 0.3 * ((t - 0.5) * 2);
+      this.sprite.scale.set(1 + (1 - squash) * 0.5, squash, 1);
+
+      if (this._layTimer <= 0) {
+        this._laying = false;
+        this.sprite.scale.set(1, 1, 1);
+      }
+      return;
+    }
+
+    if (this._celebTimer > 0) {
+      this._celebTimer -= delta;
+      const bob = Math.sin(this._celebTimer * 30) * 3;
+      this.group.position.y = -CHICKEN.Y_POS + bob;
+      if (this._celebTimer <= 0) {
+        this.group.position.y = -CHICKEN.Y_POS;
+      }
+      return;
+    }
+
+    this.group.position.x += CHICKEN.SPEED * this._dir * delta;
+    if (this.group.position.x > this._maxX) {
+      this._dir = -1;
+      this.group.scale.x = -1;
+    } else if (this.group.position.x < this._minX) {
+      this._dir = 1;
+      this.group.scale.x = 1;
+    }
+
+    const bobY = Math.sin(this._time * CHICKEN.BOB_SPEED) * CHICKEN.BOB_AMPLITUDE;
+    this.group.position.y = -CHICKEN.Y_POS + bobY;
+  }
+}

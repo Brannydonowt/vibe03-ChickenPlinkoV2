@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <title>Egg Plinko</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body {
+      width: 100%; height: 100%;
+      overflow: hidden;
+      background: #000;
+      touch-action: none;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    #game {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+    }
+    #game canvas {
+      display: block;
+      width: 100%; height: 100%;
+    }
+
+    /* HUD Overlay */
+    #hud {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      pointer-events: none;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      z-index: 10;
+    }
+
+    .hud-top {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 16px 20px;
+      gap: 16px;
+    }
+
+    .gold-pill {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(0,0,0,0.35);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      border: 1px solid rgba(255,215,0,0.4);
+      border-radius: 20px;
+      padding: 6px 16px;
+      color: #FFD700;
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      transition: transform 0.15s ease;
+    }
+    .gold-pill .coin-icon {
+      width: 22px; height: 22px;
+      background: radial-gradient(circle at 35% 35%, #FFE44D, #FFA500);
+      border-radius: 50%;
+      border: 2px solid #DAA520;
+      flex-shrink: 0;
+    }
+    .gold-pill.punch {
+      transform: scale(1.2);
+    }
+
+    .score-display {
+      background: rgba(0,0,0,0.35);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 20px;
+      padding: 6px 16px;
+      color: #fff;
+      font-size: 18px;
+      font-weight: 600;
+      opacity: 0;
+      transition: opacity 0.3s ease, transform 0.15s ease;
+    }
+    .score-display.visible {
+      opacity: 1;
+    }
+
+    .combo-display {
+      position: absolute;
+      top: 70px;
+      left: 50%;
+      transform: translateX(-50%);
+      color: #FF6B35;
+      font-size: 28px;
+      font-weight: 900;
+      text-shadow: 0 2px 8px rgba(0,0,0,0.5);
+      opacity: 0;
+      transition: opacity 0.2s ease, transform 0.2s ease;
+    }
+    .combo-display.visible {
+      opacity: 1;
+    }
+
+    .tap-prompt {
+      position: absolute;
+      bottom: 25%;
+      left: 50%;
+      transform: translateX(-50%);
+      color: #fff;
+      font-size: 18px;
+      font-weight: 700;
+      text-shadow: 0 2px 12px rgba(0,0,0,0.6);
+      letter-spacing: 1.5px;
+      white-space: nowrap;
+      opacity: 0;
+      transition: opacity 0.4s ease;
+      animation: pulse 1.4s ease-in-out infinite;
+    }
+    .tap-prompt.visible {
+      opacity: 1;
+    }
+    @keyframes pulse {
+      0%, 100% { transform: translateX(-50%) scale(1); }
+      50% { transform: translateX(-50%) scale(1.08); }
+    }
+
+    .screen-flash {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: #fff;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.1s ease;
+    }
+
+    .edge-glow {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      pointer-events: none;
+      opacity: 0;
+      box-shadow: inset 0 0 60px 20px rgba(255, 107, 53, 0.4);
+      transition: opacity 0.3s ease;
+    }
+  </style>
+</head>
+<body>
+  <div id="game"></div>
+  <div id="hud">
+    <div class="hud-top">
+      <div class="gold-pill">
+        <div class="coin-icon"></div>
+        <span id="gold-count">0</span>
+      </div>
+      <div class="score-display" id="score-display">
+        <span id="score-count">0</span> pts
+      </div>
+    </div>
+    <div class="combo-display" id="combo-display">x1</div>
+    <div class="tap-prompt" id="tap-prompt">TAP TO LAY EGG</div>
+    <div class="screen-flash" id="screen-flash"></div>
+    <div class="edge-glow" id="edge-glow"></div>
+  </div>
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
