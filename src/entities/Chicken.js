@@ -32,6 +32,10 @@ export class Chicken {
     this._maxX = GAME.WIDTH / 2 - 40;
   }
 
+  getX() {
+    return this.group.position.x;
+  }
+
   getDropX() {
     return this.group.position.x;
   }

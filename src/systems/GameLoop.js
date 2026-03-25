@@ -1,4 +1,4 @@
-import { CAMERA, TIMING, CHICKEN, SCORING, EGG } from '../config/constants.js';
+import { CAMERA, TIMING, CHICKEN, SCORING, EGG, GAME } from '../config/constants.js';
 import { Egg } from '../entities/Egg.js';
 
 const STATES = {
@@ -8,6 +8,11 @@ const STATES = {
   HATCH: 'hatch',
   TRANSITION: 'transition',
 };
+
+const STUCK_SPEED_THRESHOLD = 0.5;
+const STUCK_TIME_THRESHOLD = 2.0;
+const STUCK_WALL_MARGIN = 25;
+const STUCK_NUDGE_FORCE = 0.0015;
 
 export class GameLoop {
   constructor({ renderer, physics, camera, board, chicken, scoreManager, particleSystem, hud, audio, input, textures }) {
@@ -33,6 +38,10 @@ export class GameLoop {
     this._coinsCollected = 0;
     this._totalCoins = 0;
     this._idleDelay = 0;
+
+    this._stuckTimer = 0;
+    this._lastEggX = 0;
+    this._lastEggY = 0;
 
     this._onCollision = this._onCollision.bind(this);
     this.physics.on('collisionStart', this._onCollision);
@@ -86,10 +95,10 @@ export class GameLoop {
 
     this.particles.emitPegSpark(peg.x, -peg.y);
 
-    const textSize = combo > 3 ? 18 : combo > 1 ? 15 : 12;
+    const textSize = combo > 3 ? 42 : combo > 1 ? 34 : 28;
     const textColor = combo > 3 ? '#FF6B35' : combo > 1 ? '#FFD700' : '#FFFFFF';
     this.particles.spawnFloatingText(
-      peg.x, -peg.y + 10,
+      peg.x, -peg.y + 20,
       `+${points}`,
       textSize, textColor
     );
@@ -128,6 +137,7 @@ export class GameLoop {
     this._idleDelay = TIMING.IDLE_PROMPT_DELAY;
 
     this.camera.setTargetZoom(CAMERA.IDLE_ZOOM);
+    this.camera.followX(this.chicken.getX());
     this.camera.followY(CHICKEN.Y_POS);
     this.hud.hideScore();
   }
@@ -135,6 +145,7 @@ export class GameLoop {
   _enterDrop() {
     this.state = STATES.DROP;
     this._stateTimer = 0;
+    this._stuckTimer = 0;
     this.hud.hideTapPrompt();
 
     this.chicken.lay();
@@ -146,7 +157,7 @@ export class GameLoop {
       const y = this.chicken.getDropY();
       this.egg = new Egg(x, y, this.physics, this.textures.egg);
       this.renderer.scene.add(this.egg.mesh);
-      this.camera.setTargetZoom(CAMERA.DROP_ZOOM_MAX);
+      this.camera.setTargetZoom(CAMERA.DROP_ZOOM_START);
     }, CHICKEN.LAY_DURATION * 500);
   }
 
@@ -156,6 +167,7 @@ export class GameLoop {
     this._wobblePhase = 0;
 
     this.physics.setStatic(this.egg.body, true);
+    this.camera.setTargetZoom(CAMERA.HATCH_ZOOM);
   }
 
   _enterTransition() {
@@ -170,9 +182,11 @@ export class GameLoop {
     this.audio.whoosh();
     this.chicken.celebrate();
 
-    this.camera.transitionTo(CHICKEN.Y_POS, CAMERA.IDLE_ZOOM, TIMING.TRANSITION_DURATION, () => {
-      this._enterIdle();
-    });
+    this.camera.transitionTo(
+      this.chicken.getX(), CHICKEN.Y_POS,
+      CAMERA.IDLE_ZOOM, TIMING.TRANSITION_DURATION,
+      () => { this._enterIdle(); }
+    );
   }
 
   update(delta) {
@@ -202,6 +216,9 @@ export class GameLoop {
   }
 
   _updateIdle(delta) {
+    this.camera.followX(this.chicken.getX());
+    this.camera.followY(CHICKEN.Y_POS);
+
     this._idleDelay -= delta;
     if (this._idleDelay <= 0) {
       this.hud.showTapPrompt();
@@ -219,11 +236,20 @@ export class GameLoop {
 
     this.egg.update();
 
+    this.camera.followX(this.egg.getX());
     this.camera.followY(this.egg.getY());
+
+    const eggY = this.egg.getY();
+    const progress = Math.max(0, Math.min(1,
+      (eggY - CAMERA.BOARD_TOP_Y) / (CAMERA.BOARD_BOTTOM_Y - CAMERA.BOARD_TOP_Y)
+    ));
+    const positionZoom = CAMERA.DROP_ZOOM_MAX + (CAMERA.DROP_ZOOM_MIN - CAMERA.DROP_ZOOM_MAX) * progress;
 
     const speed = this.egg.getSpeed();
     const speedZoom = CAMERA.DROP_ZOOM_MAX - speed * CAMERA.SPEED_ZOOM_FACTOR;
-    this.camera.setTargetZoom(Math.max(CAMERA.DROP_ZOOM_MIN, Math.min(CAMERA.DROP_ZOOM_MAX, speedZoom)));
+    const clampedSpeedZoom = Math.max(CAMERA.DROP_ZOOM_MIN, Math.min(CAMERA.DROP_ZOOM_MAX, speedZoom));
+
+    this.camera.setTargetZoom(Math.min(positionZoom, clampedSpeedZoom));
 
     const velX = this.egg.getVelX();
     const velY = this.egg.getVelY();
@@ -243,12 +269,38 @@ export class GameLoop {
     if (speed > 1.5) {
       this.particles.emitTrail(this.egg.getX(), this.egg.body.position.y, speed);
     }
+
+    this._checkStuck(delta);
+  }
+
+  _checkStuck(delta) {
+    if (!this.egg || this.egg.landed) return;
+
+    const speed = this.egg.getSpeed();
+    const eggX = this.egg.getX();
+    const wallEdge = GAME.WIDTH / 2 - STUCK_WALL_MARGIN;
+
+    if (speed < STUCK_SPEED_THRESHOLD && Math.abs(eggX) > wallEdge) {
+      this._stuckTimer += delta;
+    } else {
+      this._stuckTimer = Math.max(0, this._stuckTimer - delta * 2);
+    }
+
+    if (this._stuckTimer >= STUCK_TIME_THRESHOLD) {
+      const nudgeDir = eggX > 0 ? -1 : 1;
+      this.physics.applyForce(this.egg.body, { x: nudgeDir * STUCK_NUDGE_FORCE, y: -0.001 });
+      this._stuckTimer = 0;
+    }
   }
 
   _updateLand(delta) {
     this._stateTimer += delta;
 
-    if (this.egg) this.egg.update();
+    if (this.egg) {
+      this.egg.update();
+      this.camera.followX(this.egg.getX());
+      this.camera.followY(this.egg.getY());
+    }
 
     if (this._stateTimer >= TIMING.HATCH_DELAY) {
       this._enterHatch();
@@ -257,6 +309,11 @@ export class GameLoop {
 
   _updateHatch(delta) {
     this._stateTimer += delta;
+
+    if (this.egg) {
+      this.camera.followX(this.egg.getX());
+      this.camera.followY(this.egg.getY());
+    }
 
     if (this._stateTimer < TIMING.WOBBLE_DURATION) {
       this._wobblePhase += delta * 25;
@@ -268,7 +325,6 @@ export class GameLoop {
     } else if (this._stateTimer < TIMING.WOBBLE_DURATION + TIMING.CRACK_DURATION) {
       if (this.egg && this.egg._crackLines.length === 0) {
         this.egg.showCracks();
-        this.camera.setTargetZoom(CAMERA.HATCH_ZOOM);
       }
     } else if (this._stateTimer >= TIMING.WOBBLE_DURATION + TIMING.CRACK_DURATION) {
       if (this.egg) {

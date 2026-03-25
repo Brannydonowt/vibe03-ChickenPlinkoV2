@@ -44,8 +44,8 @@ export class Board {
 
     const wallOpts = {
       isStatic: true,
-      friction: 0.1,
-      restitution: 0.3,
+      friction: 0.02,
+      restitution: 0.8,
       label: 'wall',
     };
 
@@ -113,7 +113,7 @@ export class Board {
       const divider = this.physics.createRect(
         x, -boardBottom,
         dividerWidth, BINS.HEIGHT + 10,
-        { isStatic: true, label: 'divider', restitution: 0.3 }
+        { isStatic: true, label: 'divider', restitution: 0.7, friction: 0.05 }
       );
       this.physics.addBody(divider);
 

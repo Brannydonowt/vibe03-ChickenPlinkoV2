@@ -159,21 +159,23 @@ export class ParticleSystem {
 
   spawnFloatingText(x, y, text, size, color) {
     const canvas = document.createElement('canvas');
-    const scale = 2;
-    canvas.width = 128 * scale;
-    canvas.height = 48 * scale;
+    const pixelScale = 2;
+    canvas.width = 256 * pixelScale;
+    canvas.height = 96 * pixelScale;
     const ctx = canvas.getContext('2d');
-    ctx.scale(scale, scale);
-    ctx.font = `bold ${size}px sans-serif`;
+    ctx.scale(pixelScale, pixelScale);
+    ctx.font = `bold ${size}px "Arial Black", sans-serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillStyle = '#000';
-    ctx.fillText(text, 65, 26);
+    ctx.strokeStyle = '#000';
+    ctx.lineWidth = 4;
+    ctx.lineJoin = 'round';
+    ctx.strokeText(text, 128, 48);
     ctx.fillStyle = color || '#fff';
-    ctx.fillText(text, 64, 25);
+    ctx.fillText(text, 128, 48);
 
     const tex = new THREE.CanvasTexture(canvas);
-    const geo = new THREE.PlaneGeometry(64, 24);
+    const geo = new THREE.PlaneGeometry(128, 48);
     const mat = new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false });
     const mesh = new THREE.Mesh(geo, mat);
     mesh.position.set(x, y, 10);
@@ -182,9 +184,11 @@ export class ParticleSystem {
 
     this._floatingTexts.push({
       mesh,
-      vy: 40,
-      life: 0.8,
-      maxLife: 0.8,
+      vy: 50,
+      life: 0.9,
+      maxLife: 0.9,
+      scale: 1.5,
+      targetScale: 1.0,
     });
   }
 
@@ -237,6 +241,12 @@ export class ParticleSystem {
       ft.life -= delta;
       ft.mesh.position.y += ft.vy * delta;
       ft.mesh.material.opacity = Math.max(0, ft.life / ft.maxLife);
+
+      if (ft.scale !== undefined) {
+        ft.scale += (ft.targetScale - ft.scale) * Math.min(delta * 12, 1);
+        ft.mesh.scale.set(ft.scale, ft.scale, 1);
+      }
+
       if (ft.life <= 0) {
         this.scene.remove(ft.mesh);
         ft.mesh.geometry.dispose();

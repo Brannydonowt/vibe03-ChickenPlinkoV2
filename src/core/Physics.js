@@ -72,4 +72,8 @@ export class Physics {
   setPosition(body, position) {
     Matter.Body.setPosition(body, position);
   }
+
+  applyForce(body, force) {
+    Matter.Body.applyForce(body, body.position, force);
+  }
 }

@@ -10,8 +10,8 @@ export class Peg {
 
     this.body = physics.createCircle(x, -y, BOARD.PEG_RADIUS, {
       isStatic: true,
-      restitution: 0.6,
-      friction: 0.1,
+      restitution: 0.7,
+      friction: 0.05,
       label: 'peg',
     });
     this.body.pegRef = this;
