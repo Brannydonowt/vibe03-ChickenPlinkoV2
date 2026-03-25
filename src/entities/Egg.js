@@ -1,28 +1,39 @@
 import * as THREE from 'three';
-import { EGG } from '../config/constants.js';
+import { EGG, POWERUP } from '../config/constants.js';
 
 export class Egg {
-  constructor(x, y, physics, texture) {
+  constructor(x, y, physics, texture, isDuplicate = false) {
     this.physics = physics;
+    this.isDuplicate = isDuplicate;
     this.pegHits = 0;
     this.alive = true;
     this.landed = false;
     this.landedBin = null;
 
-    this.body = physics.createCircle(x, -y, EGG.RADIUS, {
-      restitution: EGG.RESTITUTION,
+    const radius = isDuplicate ? EGG.RADIUS * POWERUP.DUPLICATE_RADIUS_SCALE : EGG.RADIUS;
+    const restitution = isDuplicate ? POWERUP.DUPLICATE_RESTITUTION : EGG.RESTITUTION;
+
+    this.body = physics.createCircle(x, -y, radius, {
+      restitution,
       friction: EGG.FRICTION,
       density: EGG.DENSITY,
-      label: 'egg',
+      label: isDuplicate ? 'egg_duplicate' : 'egg',
     });
     this.body.eggRef = this;
     physics.addBody(this.body);
 
-    const size = EGG.RADIUS * 2.4;
+    const size = radius * 2.4;
     const geo = new THREE.PlaneGeometry(size, size);
-    const mat = new THREE.MeshBasicMaterial({ map: texture, transparent: true });
+    const mat = new THREE.MeshBasicMaterial({
+      map: texture,
+      transparent: true,
+      opacity: isDuplicate ? POWERUP.DUPLICATE_OPACITY : 1.0,
+    });
+    if (isDuplicate) {
+      mat.color.set(0xFFE680);
+    }
     this.mesh = new THREE.Mesh(geo, mat);
-    this.mesh.position.set(x, -y, 2);
+    this.mesh.position.set(x, -y, isDuplicate ? 1.5 : 2);
 
     this._crackLines = [];
     this._squashX = 1;

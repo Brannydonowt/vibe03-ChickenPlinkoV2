@@ -9,6 +9,10 @@ export class HUD {
     this._edgeGlow = document.getElementById('edge-glow');
     this._goldPill = document.querySelector('.gold-pill');
     this._viewport = document.getElementById('game-viewport');
+
+    this._powerupBar = document.getElementById('powerup-bar');
+    this._powerupBtn = document.getElementById('powerup-dupli-bounce');
+    this._powerupNameEl = this._powerupBtn.querySelector('.powerup-name');
   }
 
   setGold(value) {
@@ -64,6 +68,42 @@ export class HUD {
     setTimeout(() => {
       this._screenFlash.style.transition = 'opacity 0.1s ease';
     }, duration * 1000 + 50);
+  }
+
+  showPowerupButton(canAfford) {
+    this._powerupBar.classList.add('visible');
+    this.updatePowerupAffordability(canAfford);
+    this.setPowerupIdle();
+  }
+
+  hidePowerupButton() {
+    this._powerupBar.classList.remove('visible');
+  }
+
+  setPowerupActive() {
+    this._powerupBtn.classList.remove('disabled');
+    this._powerupBtn.classList.add('active');
+    this._powerupNameEl.textContent = 'ACTIVE!';
+  }
+
+  setPowerupIdle() {
+    this._powerupBtn.classList.remove('active');
+    this._powerupNameEl.textContent = 'Dupli-Bounce!';
+  }
+
+  updatePowerupAffordability(canAfford) {
+    if (canAfford) {
+      this._powerupBtn.classList.remove('disabled');
+    } else {
+      this._powerupBtn.classList.add('disabled');
+    }
+  }
+
+  onPowerupClick(callback) {
+    this._powerupBtn.addEventListener('pointerdown', (e) => {
+      e.stopPropagation();
+      callback();
+    });
   }
 
   spawnCoinFountain(screenX, screenY, numCoins, goldPerCoin, onCoinArrive, onAllDone) {

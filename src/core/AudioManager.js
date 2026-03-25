@@ -4,12 +4,41 @@ export class AudioManager {
   constructor() {
     this.ctx = null;
     this._initialized = false;
+    this._rawSounds = {};
+    this._decodedSounds = {};
   }
 
   _init() {
     if (this._initialized) return;
     this.ctx = new (window.AudioContext || window.webkitAudioContext)();
     this._initialized = true;
+  }
+
+  async loadSound(name, url) {
+    const res = await fetch(url);
+    this._rawSounds[name] = await res.arrayBuffer();
+  }
+
+  async _getBuffer(name) {
+    if (this._decodedSounds[name]) return this._decodedSounds[name];
+    const raw = this._rawSounds[name];
+    if (!raw) return null;
+    this._decodedSounds[name] = await this.ctx.decodeAudioData(raw);
+    delete this._rawSounds[name];
+    return this._decodedSounds[name];
+  }
+
+  async _playSound(name, volume = AUDIO.MASTER_VOLUME) {
+    this._init();
+    const buffer = await this._getBuffer(name);
+    if (!buffer) return;
+    const source = this.ctx.createBufferSource();
+    const gain = this.ctx.createGain();
+    source.buffer = buffer;
+    gain.gain.value = volume;
+    source.connect(gain);
+    gain.connect(this.ctx.destination);
+    source.start();
   }
 
   _play(freq, duration, type = 'sine', volume = AUDIO.MASTER_VOLUME, detune = 0) {
@@ -68,6 +97,10 @@ export class AudioManager {
     this._play(600, 0.08, 'sine', AUDIO.MASTER_VOLUME * 0.3);
   }
 
+  chickenCluck() {
+    this._playSound('chickenCluck', AUDIO.MASTER_VOLUME * 0.8);
+  }
+
   eggLand() {
     this._play(120, 0.2, 'sine', AUDIO.MASTER_VOLUME * 0.5);
     this._noise(0.1, AUDIO.MASTER_VOLUME * 0.2);
@@ -91,6 +124,23 @@ export class AudioManager {
     const vol = AUDIO.MASTER_VOLUME * (0.15 + intensity * 0.25);
     this._play(100 + intensity * 40, 0.04, 'triangle', vol);
     this._noise(0.025, vol * 0.4);
+  }
+
+  purchasePowerup() {
+    this._init();
+    const vol = AUDIO.MASTER_VOLUME * 0.7;
+    const notes = [523, 659, 784];
+    notes.forEach((freq, i) => {
+      setTimeout(() => {
+        this._play(freq, 0.2 - i * 0.04, 'sine', vol * (1 - i * 0.12));
+      }, i * 70);
+    });
+    setTimeout(() => this._noise(0.06, AUDIO.MASTER_VOLUME * 0.25), 60);
+  }
+
+  duplicateSpawn() {
+    this._play(1000 + Math.random() * 200, 0.04, 'sine', AUDIO.MASTER_VOLUME * 0.18);
+    this._noise(0.02, AUDIO.MASTER_VOLUME * 0.06);
   }
 
   whoosh() {

@@ -29,6 +29,16 @@ export class ScoreManager {
     return gold;
   }
 
+  canAfford(amount) {
+    return this.totalGold >= amount;
+  }
+
+  spendGold(amount) {
+    if (!this.canAfford(amount)) return false;
+    this.totalGold -= amount;
+    return true;
+  }
+
   collectGold(amount) {
     this.totalGold += amount;
   }

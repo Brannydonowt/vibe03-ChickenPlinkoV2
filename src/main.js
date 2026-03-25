@@ -22,6 +22,7 @@ async function init() {
   const camera = new Camera(renderer.camera);
   const input = new InputManager(renderer.getCanvas());
   const audio = new AudioManager();
+  await audio.loadSound('chickenCluck', 'sounds/SFX_ChickenCluck.ogg');
   const scoreManager = new ScoreManager();
   const particleSystem = new ParticleSystem(renderer.scene);
   const board = new Board(renderer.scene, physics);
