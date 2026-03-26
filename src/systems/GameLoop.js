@@ -314,6 +314,7 @@ export class GameLoop {
     this.chicken.stopWarmup();
     this.chicken.lay();
     this.audio.eggPop();
+    this.audio.chickenCluck();
     this.camera.shake(5.0);
 
     const x = this.chicken.getDropX();
