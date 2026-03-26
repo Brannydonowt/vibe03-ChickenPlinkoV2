@@ -13,6 +13,11 @@ export class HUD {
     this._powerupBar = document.getElementById('powerup-bar');
     this._powerupBtn = document.getElementById('powerup-dupli-bounce');
     this._powerupNameEl = this._powerupBtn.querySelector('.powerup-name');
+
+    this._upgradeBar = document.getElementById('upgrade-bar');
+    this._upgradeBtn = document.getElementById('upgrade-buy-chicken');
+    this._upgradeCostEl = document.getElementById('upgrade-chicken-cost');
+    this._upgradeRevealed = false;
   }
 
   setGold(value) {
@@ -101,6 +106,38 @@ export class HUD {
 
   onPowerupClick(callback) {
     this._powerupBtn.addEventListener('pointerdown', (e) => {
+      e.stopPropagation();
+      callback();
+    });
+  }
+
+  showUpgradeBar() {
+    this._upgradeRevealed = true;
+    this._upgradeBar.classList.add('visible');
+  }
+
+  hideUpgradeBar() {
+    this._upgradeBar.classList.remove('visible');
+  }
+
+  setUpgradeCost(cost) {
+    this._upgradeCostEl.textContent = cost;
+  }
+
+  setUpgradeAffordable(canAfford) {
+    if (canAfford) {
+      this._upgradeBtn.classList.remove('disabled');
+    } else {
+      this._upgradeBtn.classList.add('disabled');
+    }
+  }
+
+  isUpgradeRevealed() {
+    return this._upgradeRevealed;
+  }
+
+  onUpgradeChickenClick(callback) {
+    this._upgradeBtn.addEventListener('pointerdown', (e) => {
       e.stopPropagation();
       callback();
     });

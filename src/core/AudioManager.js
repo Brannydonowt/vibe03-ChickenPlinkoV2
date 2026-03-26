@@ -85,11 +85,11 @@ export class AudioManager {
     source.start();
   }
 
-  pegHit(normalizedY, comboCount = 1) {
+  pegHit(normalizedY, comboCount = 1, volumeScale = 1.0) {
     const freq = AUDIO.PEG_BASE_FREQ + AUDIO.PEG_FREQ_RANGE * (1 - normalizedY);
     const comboBoost = Math.min(comboCount, 8) * 30;
-    this._play(freq + comboBoost, 0.08, 'sine', AUDIO.MASTER_VOLUME * 0.6);
-    this._play((freq + comboBoost) * 1.5, 0.05, 'sine', AUDIO.MASTER_VOLUME * 0.2);
+    this._play(freq + comboBoost, 0.08, 'sine', AUDIO.MASTER_VOLUME * 0.6 * volumeScale);
+    this._play((freq + comboBoost) * 1.5, 0.05, 'sine', AUDIO.MASTER_VOLUME * 0.2 * volumeScale);
   }
 
   layEgg() {
@@ -97,16 +97,16 @@ export class AudioManager {
     this._play(600, 0.08, 'sine', AUDIO.MASTER_VOLUME * 0.3);
   }
 
-  chickenCluck() {
-    this._playSound('chickenCluck', AUDIO.MASTER_VOLUME * 0.8);
+  chickenCluck(volumeScale = 1.0) {
+    this._playSound('chickenCluck', AUDIO.MASTER_VOLUME * 0.8 * volumeScale);
   }
 
-  chickenSqueeze() {
+  chickenSqueeze(volumeScale = 1.0) {
     const idx = Math.floor(Math.random() * 3) + 1;
-    this._playSound(`chickenSqueeze${idx}`, AUDIO.MASTER_VOLUME);
+    this._playSound(`chickenSqueeze${idx}`, AUDIO.MASTER_VOLUME * volumeScale);
   }
 
-  eggPop() {
+  eggPop(volumeScale = 1.0) {
     this._init();
     const ctx = this.ctx;
     const now = ctx.currentTime;
@@ -116,7 +116,7 @@ export class AudioManager {
     pop.type = 'sine';
     pop.frequency.setValueAtTime(350, now);
     pop.frequency.exponentialRampToValueAtTime(80, now + 0.12);
-    popGain.gain.setValueAtTime(AUDIO.MASTER_VOLUME * 0.7, now);
+    popGain.gain.setValueAtTime(AUDIO.MASTER_VOLUME * 0.7 * volumeScale, now);
     popGain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
     pop.connect(popGain);
     popGain.connect(ctx.destination);
@@ -128,19 +128,19 @@ export class AudioManager {
     snap.type = 'square';
     snap.frequency.setValueAtTime(800, now);
     snap.frequency.exponentialRampToValueAtTime(200, now + 0.06);
-    snapGain.gain.setValueAtTime(AUDIO.MASTER_VOLUME * 0.3, now);
+    snapGain.gain.setValueAtTime(AUDIO.MASTER_VOLUME * 0.3 * volumeScale, now);
     snapGain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
     snap.connect(snapGain);
     snapGain.connect(ctx.destination);
     snap.start(now);
     snap.stop(now + 0.08);
 
-    this._noise(0.08, AUDIO.MASTER_VOLUME * 0.4);
+    this._noise(0.08, AUDIO.MASTER_VOLUME * 0.4 * volumeScale);
   }
 
-  eggLand() {
-    this._play(120, 0.2, 'sine', AUDIO.MASTER_VOLUME * 0.5);
-    this._noise(0.1, AUDIO.MASTER_VOLUME * 0.2);
+  eggLand(volumeScale = 1.0) {
+    this._play(120, 0.2, 'sine', AUDIO.MASTER_VOLUME * 0.5 * volumeScale);
+    this._noise(0.1, AUDIO.MASTER_VOLUME * 0.2 * volumeScale);
   }
 
   hatch() {

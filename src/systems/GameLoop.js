@@ -1,5 +1,6 @@
-import { CAMERA, TIMING, CHICKEN, SCORING, EGG, GAME, POWERUP } from '../config/constants.js';
+import { CAMERA, TIMING, CHICKEN, SCORING, EGG, GAME, POWERUP, AUTO_CHICKEN } from '../config/constants.js';
 import { Egg } from '../entities/Egg.js';
+import { AutoChicken } from '../entities/AutoChicken.js';
 
 const STATES = {
   IDLE: 'idle',
@@ -51,6 +52,10 @@ export class GameLoop {
     this._bonusGold = 0;
     this._hasPlayedRound = false;
 
+    this._autoChickens = [];
+    this._autoEggs = [];
+    this._numAutoChickens = 0;
+
     this._onCollision = this._onCollision.bind(this);
     this.physics.on('collisionStart', this._onCollision);
 
@@ -58,6 +63,7 @@ export class GameLoop {
     this.input.onTap(this._onTap);
 
     this.hud.onPowerupClick(() => this.purchaseDupliBounce());
+    this.hud.onUpgradeChickenClick(() => this.purchaseAutoChicken());
 
     this._enterIdle();
   }
@@ -69,12 +75,11 @@ export class GameLoop {
   }
 
   _onCollision(pair) {
-    const validStates = this.state === STATES.DROP || this.state === STATES.LAND;
-    if (!validStates) return;
-
     const { bodyA, bodyB } = pair;
 
-    if (this.egg && this.egg.alive && this.state === STATES.DROP) {
+    const mainValid = this.state === STATES.DROP || this.state === STATES.LAND;
+
+    if (mainValid && this.egg && this.egg.alive && this.state === STATES.DROP) {
       let other = null;
       if (bodyA === this.egg.body) other = bodyB;
       else if (bodyB === this.egg.body) other = bodyA;
@@ -94,19 +99,38 @@ export class GameLoop {
       }
     }
 
-    for (const dupe of this._duplicateEggs) {
-      if (!dupe.alive || dupe.landed) continue;
+    if (mainValid) {
+      for (const dupe of this._duplicateEggs) {
+        if (!dupe.alive || dupe.landed) continue;
+        let other = null;
+        if (bodyA === dupe.body) other = bodyB;
+        else if (bodyB === dupe.body) other = bodyA;
+        if (!other) continue;
+
+        if (other.label === 'peg' && other.pegRef) {
+          this._handleDupePegHit(other.pegRef, dupe);
+        } else if (other.label && other.label.startsWith('bin_') && other.binRef) {
+          this._handleDupeBinLand(other.binRef, dupe);
+        } else if (other.label === 'floor') {
+          this._handleDupeFloorLand(dupe);
+        }
+        return;
+      }
+    }
+
+    for (const autoEgg of this._autoEggs) {
+      if (!autoEgg.alive || autoEgg.landed) continue;
       let other = null;
-      if (bodyA === dupe.body) other = bodyB;
-      else if (bodyB === dupe.body) other = bodyA;
+      if (bodyA === autoEgg.body) other = bodyB;
+      else if (bodyB === autoEgg.body) other = bodyA;
       if (!other) continue;
 
       if (other.label === 'peg' && other.pegRef) {
-        this._handleDupePegHit(other.pegRef, dupe);
+        this._handleAutoEggPegHit(other.pegRef, autoEgg);
       } else if (other.label && other.label.startsWith('bin_') && other.binRef) {
-        this._handleDupeBinLand(other.binRef, dupe);
+        this._handleAutoEggBinLand(other.binRef, autoEgg);
       } else if (other.label === 'floor') {
-        this._handleDupeFloorLand(dupe);
+        this._handleAutoEggFloorLand(autoEgg);
       }
       return;
     }
@@ -256,6 +280,112 @@ export class GameLoop {
     this._duplicateEggs = [];
   }
 
+  _getAutoChickenCost() {
+    return Math.floor(AUTO_CHICKEN.BASE_COST * Math.pow(AUTO_CHICKEN.COST_MULTIPLIER, this._numAutoChickens));
+  }
+
+  purchaseAutoChicken() {
+    if (this.state !== STATES.IDLE) return;
+    const cost = this._getAutoChickenCost();
+    if (!this.score.canAfford(cost)) return;
+
+    this.score.spendGold(cost);
+    this.hud.setGold(this.score.totalGold);
+
+    const ac = new AutoChicken(this.textures, this._numAutoChickens);
+    this._autoChickens.push(ac);
+    this.renderer.scene.add(ac.group);
+    this._numAutoChickens++;
+
+    this.audio.purchasePowerup();
+
+    const newCost = this._getAutoChickenCost();
+    this.hud.setUpgradeCost(newCost);
+    this.hud.setUpgradeAffordable(this.score.canAfford(newCost));
+  }
+
+  _spawnAutoEgg(autoChicken) {
+    const vol = AUTO_CHICKEN.AUDIO_VOLUME_SCALE;
+    this.audio.eggPop(vol);
+    this.audio.chickenCluck(vol);
+
+    const x = autoChicken.getDropX();
+    const y = autoChicken.getDropY();
+    const egg = new Egg(x, y, this.physics, this.textures.egg, false);
+    egg.body.label = 'egg_auto';
+    egg.mesh.position.z = 1.5;
+    egg._autoAge = 0;
+    this.renderer.scene.add(egg.mesh);
+    this._autoEggs.push(egg);
+  }
+
+  _handleAutoEggPegHit(peg, autoEgg) {
+    peg.hit();
+    autoEgg.pegHits++;
+    this.board.rippleFrom(peg);
+
+    const vol = AUTO_CHICKEN.AUDIO_VOLUME_SCALE;
+    const normalizedY = this.board.getNormalizedY(peg.y);
+    this.audio.pegHit(normalizedY, 1, vol);
+
+    this.particles.emitPegSpark(peg.x, -peg.y);
+  }
+
+  _handleAutoEggBinLand(bin, autoEgg) {
+    if (autoEgg.landed) return;
+    autoEgg.landed = true;
+
+    bin.glow();
+    this.audio.eggLand(AUTO_CHICKEN.AUDIO_VOLUME_SCALE);
+    this.particles.emitDust(bin.x, -bin.y + 15);
+
+    const gold = Math.max(1, Math.ceil(autoEgg.pegHits * SCORING.BASE_POINTS * bin.multiplier / 10));
+    this.score.collectGold(gold);
+    this.hud.setGold(this.score.totalGold);
+
+    this.particles.spawnFloatingText(
+      bin.x, -bin.y + 25,
+      `+${gold}g`,
+      24, '#FFE680'
+    );
+
+    this._updateUpgradeBarAffordability();
+
+    setTimeout(() => {
+      if (autoEgg.alive) {
+        autoEgg.destroy(this.renderer.scene);
+        const idx = this._autoEggs.indexOf(autoEgg);
+        if (idx !== -1) this._autoEggs.splice(idx, 1);
+      }
+    }, 150);
+  }
+
+  _handleAutoEggFloorLand(autoEgg) {
+    if (autoEgg.landed) return;
+    autoEgg.landed = true;
+
+    const gold = Math.max(1, Math.ceil(autoEgg.pegHits * SCORING.BASE_POINTS / 10));
+    this.score.collectGold(gold);
+    this.hud.setGold(this.score.totalGold);
+
+    this._updateUpgradeBarAffordability();
+
+    setTimeout(() => {
+      if (autoEgg.alive) {
+        autoEgg.destroy(this.renderer.scene);
+        const idx = this._autoEggs.indexOf(autoEgg);
+        if (idx !== -1) this._autoEggs.splice(idx, 1);
+      }
+    }, 100);
+  }
+
+  _updateUpgradeBarAffordability() {
+    if (this.hud.isUpgradeRevealed()) {
+      const cost = this._getAutoChickenCost();
+      this.hud.setUpgradeAffordable(this.score.canAfford(cost));
+    }
+  }
+
   purchaseDupliBounce() {
     if (this.state !== STATES.IDLE) return;
     if (this._dupliBounceActive) return;
@@ -287,6 +417,17 @@ export class GameLoop {
         this.hud.showPowerupButton(this.score.canAfford(POWERUP.DUPLI_BOUNCE_COST));
       }
     }
+
+    const chickenCost = this._getAutoChickenCost();
+    if (this.hud.isUpgradeRevealed()) {
+      this.hud.setUpgradeCost(chickenCost);
+      this.hud.setUpgradeAffordable(this.score.canAfford(chickenCost));
+      this.hud.showUpgradeBar();
+    } else if (this.score.totalGold >= chickenCost) {
+      this.hud.setUpgradeCost(chickenCost);
+      this.hud.setUpgradeAffordable(true);
+      this.hud.showUpgradeBar();
+    }
   }
 
   _enterWarmup() {
@@ -295,6 +436,7 @@ export class GameLoop {
     this._bonusGold = 0;
     this.hud.hideTapPrompt();
     this.hud.hidePowerupButton();
+    this.hud.hideUpgradeBar();
 
     if (this._dupliBounceActive) {
       this._dupliBounceInFlight = true;
@@ -372,6 +514,24 @@ export class GameLoop {
     this.chicken.update(delta);
     this.board.update(delta);
     this.particles.update(delta);
+
+    for (const ac of this._autoChickens) {
+      const result = ac.update(delta);
+      if (result.shouldLay) {
+        this._spawnAutoEgg(ac);
+      }
+    }
+
+    for (let i = this._autoEggs.length - 1; i >= 0; i--) {
+      const ae = this._autoEggs[i];
+      if (!ae.alive) continue;
+      if (ae.landed) continue;
+      ae._autoAge += delta;
+      ae.update();
+      if (ae._autoAge > 20) {
+        this._handleAutoEggFloorLand(ae);
+      }
+    }
 
     switch (this.state) {
       case STATES.IDLE:

@@ -37,7 +37,7 @@ export const EGG = {
 
 export const CHICKEN = {
   BODY_RADIUS: 18,
-  Y_POS: 80,
+  Y_POS: 65,
   SPEED: 40,
   BOB_AMPLITUDE: 4,
   BOB_SPEED: 2.5,
@@ -121,6 +121,19 @@ export const POWERUP = {
   SPAWN_OFFSET_Y: 5,
   SPAWN_SPEED_MIN: 1.5,
   SPAWN_SPEED_SPREAD: 1.0,
+};
+
+export const AUTO_CHICKEN = {
+  Y_POS: 110,
+  SCALE: 0.65,
+  SPEED: 35,
+  LAY_INTERVAL: 10,
+  WARMUP_DURATION: 1.2,
+  LAY_DURATION: 0.25,
+  BASE_COST: 250,
+  COST_MULTIPLIER: 3,
+  AUDIO_VOLUME_SCALE: 0.25,
+  Z_POS: 4,
 };
 
 export const COLORS = {
