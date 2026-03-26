@@ -1,4 +1,4 @@
-import { CAMERA, TIMING, CHICKEN, SCORING, EGG, GAME, POWERUP, AUTO_CHICKEN } from '../config/constants.js';
+import { CAMERA, TIMING, CHICKEN, SCORING, EGG, GAME, POWERUP, AUTO_CHICKEN, CHICKEN_TYPES } from '../config/constants.js';
 import { Egg } from '../entities/Egg.js';
 import { AutoChicken } from '../entities/AutoChicken.js';
 
@@ -52,9 +52,13 @@ export class GameLoop {
     this._bonusGold = 0;
     this._hasPlayedRound = false;
 
-    this._autoChickens = [];
+    this._chickenSlots = CHICKEN_TYPES.map(type => ({
+      config: type,
+      owned: false,
+      level: 0,
+      chicken: null,
+    }));
     this._autoEggs = [];
-    this._numAutoChickens = 0;
 
     this._onCollision = this._onCollision.bind(this);
     this.physics.on('collisionStart', this._onCollision);
@@ -63,7 +67,10 @@ export class GameLoop {
     this.input.onTap(this._onTap);
 
     this.hud.onPowerupClick(() => this.purchaseDupliBounce());
-    this.hud.onAutoChickenBuy(() => this.purchaseAutoChicken());
+
+    this.hud.initUpgradeRows(CHICKEN_TYPES);
+    this.hud.revealUpgradeRow(CHICKEN_TYPES[0].id);
+    this.hud.onUpgradeRowClick((typeId) => this._handleUpgradeClick(typeId));
 
     this._enterIdle();
   }
@@ -280,29 +287,76 @@ export class GameLoop {
     this._duplicateEggs = [];
   }
 
-  _getAutoChickenCost() {
-    return Math.floor(AUTO_CHICKEN.BASE_COST * Math.pow(AUTO_CHICKEN.COST_MULTIPLIER, this._numAutoChickens));
+  /* --- Chicken upgrade system --- */
+
+  _getSlot(typeId) {
+    return this._chickenSlots.find(s => s.config.id === typeId);
   }
 
-  purchaseAutoChicken() {
+  _getSlotCost(slot) {
+    if (!slot.owned) return slot.config.baseCost;
+    if (slot.level >= AUTO_CHICKEN.MAX_LEVEL) return Infinity;
+    return Math.floor(slot.config.levelCostBase * Math.pow(slot.config.levelCostMult, slot.level - 1));
+  }
+
+  _handleUpgradeClick(typeId) {
     if (this.state !== STATES.IDLE) return;
-    const cost = this._getAutoChickenCost();
+    const slot = this._getSlot(typeId);
+    if (!slot) return;
+
+    const cost = this._getSlotCost(slot);
     if (!this.score.canAfford(cost)) return;
 
+    if (!slot.owned) {
+      this._purchaseChicken(slot);
+    } else if (slot.level < AUTO_CHICKEN.MAX_LEVEL) {
+      this._upgradeChicken(slot);
+    }
+  }
+
+  _purchaseChicken(slot) {
+    const cost = slot.config.baseCost;
     this.score.spendGold(cost);
     this.hud.setGold(this.score.totalGold);
 
-    const ac = new AutoChicken(this.textures, this._numAutoChickens);
-    this._autoChickens.push(ac);
-    this.renderer.scene.add(ac.group);
-    this._numAutoChickens++;
+    slot.owned = true;
+    slot.level = 1;
+    slot.chicken = new AutoChicken(this.textures, slot.config, 1);
+    this.renderer.scene.add(slot.chicken.group);
 
     this.audio.purchasePowerup();
 
-    const newCost = this._getAutoChickenCost();
-    this.hud.setAutoChickenCost(newCost);
-    this.hud.setAutoChickenCount(this._numAutoChickens);
-    this.hud.setAutoChickenAffordable(this.score.canAfford(newCost));
+    const slotIdx = this._chickenSlots.indexOf(slot);
+    if (slotIdx + 1 < this._chickenSlots.length) {
+      this.hud.revealUpgradeRow(this._chickenSlots[slotIdx + 1].config.id);
+    }
+
+    this._syncAllUpgradeRows();
+  }
+
+  _upgradeChicken(slot) {
+    const cost = this._getSlotCost(slot);
+    this.score.spendGold(cost);
+    this.hud.setGold(this.score.totalGold);
+
+    slot.level++;
+    slot.chicken.setLevel(slot.level);
+
+    this.audio.purchasePowerup();
+    this._syncAllUpgradeRows();
+  }
+
+  _syncAllUpgradeRows() {
+    for (const slot of this._chickenSlots) {
+      const cost = this._getSlotCost(slot);
+      this.hud.updateUpgradeRow(slot.config.id, {
+        owned: slot.owned,
+        level: slot.level,
+        cost: cost === Infinity ? '---' : cost,
+        canAfford: this.score.canAfford(cost),
+        maxLevel: AUTO_CHICKEN.MAX_LEVEL,
+      });
+    }
   }
 
   _spawnAutoEgg(autoChicken) {
@@ -312,7 +366,12 @@ export class GameLoop {
 
     const x = autoChicken.getDropX();
     const y = autoChicken.getDropY();
-    const egg = new Egg(x, y, this.physics, this.textures.egg, false);
+    const tc = autoChicken.typeConfig;
+    const egg = new Egg(x, y, this.physics, this.textures.egg, false, {
+      tint: tc.eggTint,
+      goldMultiplier: tc.goldMultiplier,
+      typeId: tc.id,
+    });
     egg.body.label = 'egg_auto';
     egg.mesh.position.z = 1.5;
     egg._autoAge = 0;
@@ -340,17 +399,42 @@ export class GameLoop {
     this.audio.eggLand(AUTO_CHICKEN.AUDIO_VOLUME_SCALE);
     this.particles.emitDust(bin.x, -bin.y + 15);
 
-    const gold = Math.max(1, Math.ceil(autoEgg.pegHits * SCORING.BASE_POINTS * bin.multiplier / 10));
-    this.score.collectGold(gold);
-    this.hud.setGold(this.score.totalGold);
+    const baseGold = Math.max(1, Math.ceil(autoEgg.pegHits * SCORING.BASE_POINTS * bin.multiplier / 10));
+    const gold = baseGold * autoEgg.goldMultiplier;
 
-    this.particles.spawnFloatingText(
-      bin.x, -bin.y + 25,
-      `+${gold}g`,
-      24, '#FFE680'
+    this._fireAutoEggFountain(autoEgg, gold);
+  }
+
+  _handleAutoEggFloorLand(autoEgg) {
+    if (autoEgg.landed) return;
+    autoEgg.landed = true;
+
+    const baseGold = Math.max(1, Math.ceil(autoEgg.pegHits * SCORING.BASE_POINTS / 10));
+    const gold = baseGold * autoEgg.goldMultiplier;
+
+    this._fireAutoEggFountain(autoEgg, gold);
+  }
+
+  _fireAutoEggFountain(autoEgg, gold) {
+    const ex = autoEgg.getX();
+    const ey = -autoEgg.getY();
+
+    this.particles.emitHatchExplosion(ex, ey);
+
+    const screenPos = this.renderer.projectToScreen(ex, ey);
+    const numCoins = Math.min(Math.max(Math.ceil(Math.sqrt(gold)), 2), 12);
+    const goldPerCoin = Math.round(gold / numCoins);
+
+    this.hud.spawnCoinFountain(
+      screenPos.x, screenPos.y,
+      numCoins, goldPerCoin,
+      (g) => {
+        this.score.collectGold(g);
+        this.hud.setGold(this.score.totalGold);
+        this._syncAllUpgradeRows();
+      },
+      null
     );
-
-    this._updateUpgradeAffordability();
 
     setTimeout(() => {
       if (autoEgg.alive) {
@@ -359,32 +443,6 @@ export class GameLoop {
         if (idx !== -1) this._autoEggs.splice(idx, 1);
       }
     }, 150);
-  }
-
-  _handleAutoEggFloorLand(autoEgg) {
-    if (autoEgg.landed) return;
-    autoEgg.landed = true;
-
-    const gold = Math.max(1, Math.ceil(autoEgg.pegHits * SCORING.BASE_POINTS / 10));
-    this.score.collectGold(gold);
-    this.hud.setGold(this.score.totalGold);
-
-    this._updateUpgradeAffordability();
-
-    setTimeout(() => {
-      if (autoEgg.alive) {
-        autoEgg.destroy(this.renderer.scene);
-        const idx = this._autoEggs.indexOf(autoEgg);
-        if (idx !== -1) this._autoEggs.splice(idx, 1);
-      }
-    }, 100);
-  }
-
-  _updateUpgradeAffordability() {
-    if (this._hasPlayedRound) {
-      const cost = this._getAutoChickenCost();
-      this.hud.setAutoChickenAffordable(this.score.canAfford(cost));
-    }
   }
 
   purchaseDupliBounce() {
@@ -398,6 +456,7 @@ export class GameLoop {
 
     this.audio.purchasePowerup();
     this.hud.setPowerupActive();
+    this._syncAllUpgradeRows();
   }
 
   _enterIdle() {
@@ -417,10 +476,7 @@ export class GameLoop {
     }
 
     if (this._hasPlayedRound) {
-      const chickenCost = this._getAutoChickenCost();
-      this.hud.setAutoChickenCost(chickenCost);
-      this.hud.setAutoChickenCount(this._numAutoChickens);
-      this.hud.setAutoChickenAffordable(this.score.canAfford(chickenCost));
+      this._syncAllUpgradeRows();
       this.hud.showUpgradeToggle();
     }
   }
@@ -512,10 +568,11 @@ export class GameLoop {
     this.board.update(delta);
     this.particles.update(delta);
 
-    for (const ac of this._autoChickens) {
-      const result = ac.update(delta);
+    for (const slot of this._chickenSlots) {
+      if (!slot.chicken) continue;
+      const result = slot.chicken.update(delta);
       if (result.shouldLay) {
-        this._spawnAutoEgg(ac);
+        this._spawnAutoEgg(slot.chicken);
       }
     }
 

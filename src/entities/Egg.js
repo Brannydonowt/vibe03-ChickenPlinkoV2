@@ -2,9 +2,11 @@ import * as THREE from 'three';
 import { EGG, POWERUP } from '../config/constants.js';
 
 export class Egg {
-  constructor(x, y, physics, texture, isDuplicate = false) {
+  constructor(x, y, physics, texture, isDuplicate = false, eggConfig = null) {
     this.physics = physics;
     this.isDuplicate = isDuplicate;
+    this.goldMultiplier = eggConfig?.goldMultiplier || 1;
+    this.typeId = eggConfig?.typeId || null;
     this.pegHits = 0;
     this.alive = true;
     this.landed = false;
@@ -32,6 +34,8 @@ export class Egg {
     });
     if (isDuplicate) {
       mat.color.set(0xFFE680);
+    } else if (eggConfig?.tint) {
+      mat.color.set(eggConfig.tint);
     }
     this.mesh = new THREE.Mesh(geo, mat);
     this.mesh.position.set(x, -y, isDuplicate ? 1.5 : 2);

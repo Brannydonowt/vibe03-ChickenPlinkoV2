@@ -20,11 +20,11 @@ export class HUD {
     this._upgradeBackdrop = document.getElementById('upgrade-backdrop');
     this._upgradePanel = document.getElementById('upgrade-panel');
     this._upgradeClose = document.getElementById('upgrade-close');
-    this._buyAutoChickenBtn = document.getElementById('buy-auto-chicken');
-    this._autoChickenCostEl = document.getElementById('auto-chicken-cost');
-    this._autoChickenCountEl = document.getElementById('auto-chicken-count');
+    this._upgradeList = document.getElementById('upgrade-list');
 
     this._panelOpen = false;
+    this._upgradeRows = {};
+    this._upgradeCallback = null;
 
     this._upgradeToggle.addEventListener('pointerdown', (e) => {
       e.stopPropagation();
@@ -167,27 +167,82 @@ export class HUD {
     return this._panelOpen;
   }
 
-  setAutoChickenCost(cost) {
-    this._autoChickenCostEl.textContent = cost;
-  }
+  initUpgradeRows(chickenTypes) {
+    this._upgradeList.innerHTML = '';
+    for (const type of chickenTypes) {
+      const row = document.createElement('div');
+      row.className = 'upgrade-item';
+      row.dataset.type = type.id;
+      row.style.display = 'none';
 
-  setAutoChickenCount(count) {
-    this._autoChickenCountEl.textContent = count > 0 ? `Owned: ${count}` : '';
-  }
+      row.innerHTML = `
+        <div class="upgrade-item-icon">${type.emoji}</div>
+        <div class="upgrade-item-info">
+          <span class="upgrade-item-name">${type.name}</span>
+          <span class="upgrade-item-desc">${type.description}</span>
+          <span class="upgrade-item-level"></span>
+        </div>
+        <button class="upgrade-item-buy" data-type="${type.id}">
+          <img class="buy-coin" src="sprites/icons/Coin.svg" alt="" />
+          <span class="buy-price">${type.baseCost}</span>
+        </button>
+      `;
 
-  setAutoChickenAffordable(canAfford) {
-    if (canAfford) {
-      this._buyAutoChickenBtn.classList.remove('cannot-afford');
-    } else {
-      this._buyAutoChickenBtn.classList.add('cannot-afford');
+      const btn = row.querySelector('.upgrade-item-buy');
+      btn.addEventListener('pointerdown', (e) => {
+        e.stopPropagation();
+        if (this._upgradeCallback) this._upgradeCallback(type.id);
+      });
+
+      this._upgradeList.appendChild(row);
+      this._upgradeRows[type.id] = {
+        row,
+        btn,
+        priceEl: row.querySelector('.buy-price'),
+        levelEl: row.querySelector('.upgrade-item-level'),
+        descEl: row.querySelector('.upgrade-item-desc'),
+      };
     }
   }
 
-  onAutoChickenBuy(callback) {
-    this._buyAutoChickenBtn.addEventListener('pointerdown', (e) => {
-      e.stopPropagation();
-      callback();
-    });
+  revealUpgradeRow(typeId) {
+    const entry = this._upgradeRows[typeId];
+    if (!entry) return;
+    entry.row.style.display = '';
+  }
+
+  updateUpgradeRow(typeId, state) {
+    const entry = this._upgradeRows[typeId];
+    if (!entry) return;
+
+    if (!state.owned) {
+      entry.priceEl.textContent = state.cost;
+      entry.levelEl.textContent = '';
+      entry.btn.disabled = false;
+      entry.btn.classList.remove('locked');
+    } else if (state.level >= state.maxLevel) {
+      entry.priceEl.textContent = 'MAX';
+      entry.btn.querySelector('.buy-coin').style.display = 'none';
+      entry.levelEl.textContent = `Lv.${state.level}`;
+      entry.btn.disabled = true;
+      entry.btn.classList.add('locked');
+    } else {
+      entry.priceEl.textContent = state.cost;
+      entry.btn.querySelector('.buy-coin').style.display = '';
+      entry.levelEl.textContent = `Lv.${state.level}`;
+      entry.btn.disabled = false;
+      entry.btn.classList.remove('locked');
+    }
+
+    if (state.canAfford && !entry.btn.disabled) {
+      entry.btn.classList.remove('cannot-afford');
+    } else {
+      entry.btn.classList.add('cannot-afford');
+    }
+  }
+
+  onUpgradeRowClick(callback) {
+    this._upgradeCallback = callback;
   }
 
   spawnCoinFountain(screenX, screenY, numCoins, goldPerCoin, onCoinArrive, onAllDone) {

@@ -4,14 +4,19 @@ import { AUTO_CHICKEN, CHICKEN, GAME } from '../config/constants.js';
 const FLIP_INTERVAL = 0.18;
 
 export class AutoChicken {
-  constructor(textures, index) {
+  constructor(textures, typeConfig, level = 1) {
+    this.typeConfig = typeConfig;
+    this._level = level;
     this._time = Math.random() * 100;
-    this._dir = index % 2 === 0 ? 1 : -1;
+
+    const typeIndex = ['normal', 'rainbow', 'cosmic'].indexOf(typeConfig.id);
+    this._dir = typeIndex % 2 === 0 ? 1 : -1;
     this._flipTimer = Math.random() * FLIP_INTERVAL;
     this._frameIndex = 0;
 
+    this._layInterval = this._calcInterval(level);
     this._laying = false;
-    this._layTimer = AUTO_CHICKEN.LAY_INTERVAL;
+    this._layTimer = this._layInterval;
     this._warmingUp = false;
     this._warmupTimer = 0;
     this._layAnimTimer = 0;
@@ -22,7 +27,7 @@ export class AutoChicken {
     this._frames = this._flyFrames;
 
     this.group = new THREE.Group();
-    const startX = ((index * 97 + 43) % (GAME.WIDTH - 80)) - (GAME.WIDTH / 2 - 40);
+    const startX = ((typeIndex * 97 + 43) % (GAME.WIDTH - 80)) - (GAME.WIDTH / 2 - 40);
     this.group.position.set(startX, -AUTO_CHICKEN.Y_POS, AUTO_CHICKEN.Z_POS);
     this.group.scale.set(
       AUTO_CHICKEN.SCALE * (this._dir === 1 ? -1 : 1),
@@ -36,6 +41,9 @@ export class AutoChicken {
       map: this._frames[0],
       transparent: true,
     });
+    if (typeConfig.tint) {
+      mat.color.set(typeConfig.tint);
+    }
     this.sprite = new THREE.Mesh(geo, mat);
     this.group.add(this.sprite);
 
@@ -65,6 +73,18 @@ export class AutoChicken {
     this._drawTimerText(Math.ceil(this._layTimer));
   }
 
+  _calcInterval(level) {
+    return this.typeConfig.baseInterval * Math.pow(1 - AUTO_CHICKEN.INTERVAL_REDUCTION, level - 1);
+  }
+
+  setLevel(level) {
+    this._level = level;
+    this._layInterval = this._calcInterval(level);
+    if (!this._warmingUp && !this._laying) {
+      this._layTimer = Math.min(this._layTimer, this._layInterval);
+    }
+  }
+
   _drawTimerText(seconds) {
     const ctx = this._timerCtx;
     ctx.clearRect(0, 0, 64, 32);
@@ -74,7 +94,7 @@ export class AutoChicken {
     ctx.strokeStyle = 'rgba(0,0,0,0.7)';
     ctx.lineWidth = 3;
     ctx.strokeText(`${seconds}s`, 32, 17);
-    ctx.fillStyle = '#FFFFFF';
+    ctx.fillStyle = this.typeConfig.timerColor;
     ctx.fillText(`${seconds}s`, 32, 17);
     this._timerTexture.needsUpdate = true;
   }
@@ -131,7 +151,7 @@ export class AutoChicken {
       if (this._layAnimTimer <= 0) {
         this._laying = false;
         this.sprite.scale.set(1, 1, 1);
-        this._layTimer = AUTO_CHICKEN.LAY_INTERVAL;
+        this._layTimer = this._layInterval;
         this._lastDisplayedSecond = Math.ceil(this._layTimer);
         this._drawTimerText(this._lastDisplayedSecond);
         this._timerSprite.visible = true;
@@ -172,6 +192,12 @@ export class AutoChicken {
 
     const bobY = Math.sin(this._time * CHICKEN.BOB_SPEED * 0.9) * CHICKEN.BOB_AMPLITUDE * 0.8;
     this.group.position.y = -AUTO_CHICKEN.Y_POS + bobY;
+
+    if (this.typeConfig.id === 'cosmic') {
+      const pulse = 1 + Math.sin(this._time * 3) * 0.03;
+      this.sprite.scale.x *= pulse;
+      this.sprite.scale.y *= pulse;
+    }
 
     return { shouldLay };
   }

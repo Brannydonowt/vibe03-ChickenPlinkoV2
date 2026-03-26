@@ -474,6 +474,15 @@
       overflow: hidden;
       text-overflow: ellipsis;
     }
+    .upgrade-item-level {
+      font-size: 11px;
+      color: rgba(255,215,0,0.7);
+      font-weight: 600;
+    }
+    .upgrade-item-level:empty {
+      display: none;
+    }
+
     .upgrade-item-count {
       font-size: 11px;
       color: rgba(255,215,0,0.7);
@@ -615,26 +624,6 @@
         </button>
       </div>
       <div class="upgrade-panel-list" id="upgrade-list">
-        <div class="upgrade-item" id="upgrade-auto-chicken">
-          <div class="upgrade-item-icon">&#x1F414;</div>
-          <div class="upgrade-item-info">
-            <span class="upgrade-item-name">Auto Chicken</span>
-            <span class="upgrade-item-desc">Lays eggs on its own</span>
-            <span class="upgrade-item-count" id="auto-chicken-count"></span>
-          </div>
-          <button class="upgrade-item-buy" id="buy-auto-chicken">
-            <img class="buy-coin" src="sprites/icons/Coin.svg" alt="" />
-            <span class="buy-price" id="auto-chicken-cost">250</span>
-          </button>
-        </div>
-        <div class="upgrade-item coming-soon">
-          <div class="upgrade-item-icon">?</div>
-          <div class="upgrade-item-info">
-            <span class="upgrade-item-name">???</span>
-            <span class="upgrade-item-desc">Coming soon!</span>
-          </div>
-          <button class="upgrade-item-buy locked" disabled>Soon</button>
-        </div>
       </div>
     </div>
     <div class="screen-flash" id="screen-flash"></div>
