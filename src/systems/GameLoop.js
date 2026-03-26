@@ -49,6 +49,7 @@ export class GameLoop {
     this._dupliBounceInFlight = false;
     this._duplicateEggs = [];
     this._bonusGold = 0;
+    this._hasPlayedRound = false;
 
     this._onCollision = this._onCollision.bind(this);
     this.physics.on('collisionStart', this._onCollision);
@@ -278,11 +279,13 @@ export class GameLoop {
     this.camera.followY(CHICKEN.Y_POS);
     this.hud.hideScore();
 
-    if (this._dupliBounceActive) {
-      this.hud.showPowerupButton(true);
-      this.hud.setPowerupActive();
-    } else {
-      this.hud.showPowerupButton(this.score.canAfford(POWERUP.DUPLI_BOUNCE_COST));
+    if (this._hasPlayedRound) {
+      if (this._dupliBounceActive) {
+        this.hud.showPowerupButton(true);
+        this.hud.setPowerupActive();
+      } else {
+        this.hud.showPowerupButton(this.score.canAfford(POWERUP.DUPLI_BOUNCE_COST));
+      }
     }
   }
 
@@ -344,6 +347,7 @@ export class GameLoop {
   _enterTransition() {
     this.state = STATES.TRANSITION;
     this._stateTimer = 0;
+    this._hasPlayedRound = true;
 
     this._dupliBounceInFlight = false;
     this._bonusGold = 0;
