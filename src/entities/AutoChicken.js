@@ -99,6 +99,15 @@ export class AutoChicken {
     this._timerTexture.needsUpdate = true;
   }
 
+  triggerImmediateLay() {
+    this._warmingUp = true;
+    this._warmupTimer = 0;
+    this._frames = this._layFrames;
+    this._frameIndex = 0;
+    this.sprite.material.map = this._frames[0];
+    this._timerSprite.visible = false;
+  }
+
   getX() { return this.group.position.x; }
 
   getDropX() { return this.group.position.x; }

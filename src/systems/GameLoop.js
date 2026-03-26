@@ -323,6 +323,7 @@ export class GameLoop {
     slot.level = 1;
     slot.chicken = new AutoChicken(this.textures, slot.config, 1);
     this.renderer.scene.add(slot.chicken.group);
+    slot.chicken.triggerImmediateLay();
 
     this.audio.purchasePowerup();
 
