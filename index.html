@@ -376,6 +376,40 @@
       border-color: rgba(255,255,255,0.15);
       color: #aaa;
     }
+
+    /* Subtle tap prompt (post-FTUE overview mode) */
+    .tap-prompt-subtle {
+      position: absolute;
+      top: 8%;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      opacity: 0;
+      transition: opacity 0.6s ease;
+      pointer-events: none;
+      animation: subtle-bob 2.4s ease-in-out infinite;
+    }
+    .tap-prompt-subtle.visible {
+      opacity: 0.7;
+    }
+    .tap-prompt-subtle img {
+      width: 28px;
+      height: auto;
+      filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+    }
+    .tap-prompt-subtle span {
+      font-family: 'Lilita One', 'Impact', 'Arial Black', sans-serif;
+      font-size: 16px;
+      color: #fff;
+      text-shadow: 0 2px 6px rgba(0,0,0,0.4);
+      letter-spacing: 0.5px;
+    }
+    @keyframes subtle-bob {
+      0%, 100% { transform: translateX(-50%) translateY(0); }
+      50% { transform: translateX(-50%) translateY(-3px); }
+    }
   </style>
 </head>
 <body>
@@ -404,6 +438,10 @@
       <div class="tap-icon-wrapper">
         <img src="sprites/left-click.png" alt="" />
       </div>
+    </div>
+    <div class="tap-prompt-subtle" id="tap-prompt-subtle">
+      <img src="sprites/left-click.png" alt="" />
+      <span>Tap to lay!</span>
     </div>
     <div class="upgrade-bar" id="upgrade-bar">
       <button class="upgrade-btn" id="upgrade-buy-chicken">

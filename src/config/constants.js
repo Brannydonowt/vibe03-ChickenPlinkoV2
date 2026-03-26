@@ -72,6 +72,8 @@ export const CAMERA = {
   SPEED_ZOOM_FACTOR: 0.0003,
   BOARD_TOP_Y: 160,
   BOARD_BOTTOM_Y: 806,
+  OVERVIEW_ZOOM: 0.9,
+  OVERVIEW_CENTER_Y: 400,
 };
 
 export const SCORING = {

@@ -403,19 +403,16 @@ export class GameLoop {
     this.state = STATES.IDLE;
     this.score.resetRun();
     this._idleDelay = TIMING.IDLE_PROMPT_DELAY;
-
-    this.camera.setTargetZoom(CAMERA.IDLE_ZOOM);
-    this.camera.followX(this.chicken.getX());
-    this.camera.followY(CHICKEN.Y_POS);
     this.hud.hideScore();
 
     if (this._hasPlayedRound) {
-      if (this._dupliBounceActive) {
-        this.hud.showPowerupButton(true);
-        this.hud.setPowerupActive();
-      } else {
-        this.hud.showPowerupButton(this.score.canAfford(POWERUP.DUPLI_BOUNCE_COST));
-      }
+      this.camera.setTargetZoom(CAMERA.OVERVIEW_ZOOM);
+      this.camera.followX(0);
+      this.camera.followY(CAMERA.OVERVIEW_CENTER_Y);
+    } else {
+      this.camera.setTargetZoom(CAMERA.IDLE_ZOOM);
+      this.camera.followX(this.chicken.getX());
+      this.camera.followY(CHICKEN.Y_POS);
     }
 
     const chickenCost = this._getAutoChickenCost();
@@ -435,6 +432,7 @@ export class GameLoop {
     this._stateTimer = 0;
     this._bonusGold = 0;
     this.hud.hideTapPrompt();
+    this.hud.hideSubtleTapPrompt();
     this.hud.hidePowerupButton();
     this.hud.hideUpgradeBar();
 
@@ -504,8 +502,8 @@ export class GameLoop {
     this.chicken.celebrate();
 
     this.camera.transitionTo(
-      this.chicken.getX(), CHICKEN.Y_POS,
-      CAMERA.IDLE_ZOOM, TIMING.TRANSITION_DURATION,
+      0, CAMERA.OVERVIEW_CENTER_Y,
+      CAMERA.OVERVIEW_ZOOM, TIMING.TRANSITION_DURATION,
       () => { this._enterIdle(); }
     );
   }
@@ -558,12 +556,21 @@ export class GameLoop {
   }
 
   _updateIdle(delta) {
-    this.camera.followX(this.chicken.getX());
-    this.camera.followY(CHICKEN.Y_POS);
+    if (this._hasPlayedRound) {
+      this.camera.followX(0);
+      this.camera.followY(CAMERA.OVERVIEW_CENTER_Y);
+    } else {
+      this.camera.followX(this.chicken.getX());
+      this.camera.followY(CHICKEN.Y_POS);
+    }
 
     this._idleDelay -= delta;
     if (this._idleDelay <= 0) {
-      this.hud.showTapPrompt();
+      if (this._hasPlayedRound) {
+        this.hud.showSubtleTapPrompt();
+      } else {
+        this.hud.showTapPrompt();
+      }
     }
   }
 

@@ -14,6 +14,8 @@ export class HUD {
     this._powerupBtn = document.getElementById('powerup-dupli-bounce');
     this._powerupNameEl = this._powerupBtn.querySelector('.powerup-name');
 
+    this._subtleTapPrompt = document.getElementById('tap-prompt-subtle');
+
     this._upgradeBar = document.getElementById('upgrade-bar');
     this._upgradeBtn = document.getElementById('upgrade-buy-chicken');
     this._upgradeCostEl = document.getElementById('upgrade-chicken-cost');
@@ -56,6 +58,14 @@ export class HUD {
 
   hideTapPrompt() {
     this._tapPrompt.classList.remove('visible');
+  }
+
+  showSubtleTapPrompt() {
+    this._subtleTapPrompt.classList.add('visible');
+  }
+
+  hideSubtleTapPrompt() {
+    this._subtleTapPrompt.classList.remove('visible');
   }
 
   hideScore() {
