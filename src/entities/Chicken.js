@@ -13,7 +13,12 @@ export class Chicken {
     this._flipTimer = 0;
     this._frameIndex = 0;
 
-    this._frames = [textures.chickenFly1, textures.chickenFly2];
+    this._warmingUp = false;
+    this._warmupTimer = 0;
+    this._warmupDuration = 0;
+
+    this._flyFrames = [textures.chickenFly1, textures.chickenFly2];
+    this._frames = this._flyFrames;
 
     this.group = new THREE.Group();
     this.group.position.set(0, -CHICKEN.Y_POS, 5);
@@ -44,6 +49,26 @@ export class Chicken {
     return -this.group.position.y + CHICKEN.BODY_RADIUS + 5;
   }
 
+  warmup(layTextures, duration) {
+    this._warmingUp = true;
+    this._warmupTimer = 0;
+    this._warmupDuration = duration;
+    this._frames = layTextures;
+    this._frameIndex = 0;
+    this._flipTimer = 0;
+    this.sprite.material.map = this._frames[0];
+  }
+
+  stopWarmup() {
+    this._warmingUp = false;
+    this._warmupTimer = 0;
+    this._frames = this._flyFrames;
+    this._frameIndex = 0;
+    this.sprite.material.map = this._frames[0];
+    this.sprite.scale.set(1, 1, 1);
+    this.sprite.position.x = 0;
+  }
+
   lay() {
     this._laying = true;
     this._layTimer = CHICKEN.LAY_DURATION;
@@ -61,6 +86,23 @@ export class Chicken {
       this._flipTimer -= FLIP_INTERVAL;
       this._frameIndex = (this._frameIndex + 1) % this._frames.length;
       this.sprite.material.map = this._frames[this._frameIndex];
+    }
+
+    if (this._warmingUp) {
+      this._warmupTimer += delta;
+      const t = Math.min(this._warmupTimer / this._warmupDuration, 1);
+      const eased = t * t;
+
+      const squashY = 1 - 0.3 * eased;
+      const squashX = 1 + 0.25 * eased;
+      this.sprite.scale.set(squashX, squashY, 1);
+
+      const tremble = eased * 1.5 * (Math.random() - 0.5) * 2;
+      this.sprite.position.x = tremble;
+
+      const bobY = Math.sin(this._time * CHICKEN.BOB_SPEED) * CHICKEN.BOB_AMPLITUDE * (1 - eased * 0.5);
+      this.group.position.y = -CHICKEN.Y_POS + bobY;
+      return;
     }
 
     if (this._laying) {

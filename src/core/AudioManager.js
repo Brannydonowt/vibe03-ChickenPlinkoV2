@@ -101,6 +101,43 @@ export class AudioManager {
     this._playSound('chickenCluck', AUDIO.MASTER_VOLUME * 0.8);
   }
 
+  chickenSqueeze() {
+    const idx = Math.floor(Math.random() * 3) + 1;
+    this._playSound(`chickenSqueeze${idx}`, AUDIO.MASTER_VOLUME);
+  }
+
+  eggPop() {
+    this._init();
+    const ctx = this.ctx;
+    const now = ctx.currentTime;
+
+    const pop = ctx.createOscillator();
+    const popGain = ctx.createGain();
+    pop.type = 'sine';
+    pop.frequency.setValueAtTime(350, now);
+    pop.frequency.exponentialRampToValueAtTime(80, now + 0.12);
+    popGain.gain.setValueAtTime(AUDIO.MASTER_VOLUME * 0.7, now);
+    popGain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+    pop.connect(popGain);
+    popGain.connect(ctx.destination);
+    pop.start(now);
+    pop.stop(now + 0.15);
+
+    const snap = ctx.createOscillator();
+    const snapGain = ctx.createGain();
+    snap.type = 'square';
+    snap.frequency.setValueAtTime(800, now);
+    snap.frequency.exponentialRampToValueAtTime(200, now + 0.06);
+    snapGain.gain.setValueAtTime(AUDIO.MASTER_VOLUME * 0.3, now);
+    snapGain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+    snap.connect(snapGain);
+    snapGain.connect(ctx.destination);
+    snap.start(now);
+    snap.stop(now + 0.08);
+
+    this._noise(0.08, AUDIO.MASTER_VOLUME * 0.4);
+  }
+
   eggLand() {
     this._play(120, 0.2, 'sine', AUDIO.MASTER_VOLUME * 0.5);
     this._noise(0.1, AUDIO.MASTER_VOLUME * 0.2);

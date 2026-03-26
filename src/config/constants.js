@@ -45,6 +45,7 @@ export const CHICKEN = {
   BEAK_COLOR: 0xFF8C00,
   COMB_COLOR: 0xFF3333,
   LAY_DURATION: 0.3,
+  WARMUP_DURATION: 1.8,
 };
 
 export const PHYSICS = {
@@ -58,7 +59,8 @@ export const CAMERA = {
   FOLLOW_LERP: 0.08,
   FOLLOW_LERP_X: 0.10,
   ZOOM_LERP: 0.04,
-  IDLE_ZOOM: 2.0,
+  IDLE_ZOOM: 4.6,
+  WARMUP_ZOOM: 5.2,
   DROP_ZOOM_START: 1.4,
   DROP_ZOOM_MIN: 0.7,
   DROP_ZOOM_MAX: 1.4,

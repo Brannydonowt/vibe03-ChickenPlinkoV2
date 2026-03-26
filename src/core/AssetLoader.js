@@ -3,6 +3,8 @@ import * as THREE from 'three';
 const TEXTURE_MANIFEST = {
   chickenFly1: 'sprites/T_Char_Chicken_Flying1.png',
   chickenFly2: 'sprites/T_Char_Chicken_Flying2.png',
+  chickenLay0: 'sprites/T_Bird_LayingEgg_00.png',
+  chickenLay1: 'sprites/T_Bird_LayingEgg_01.png',
   egg: 'sprites/T_Egg_Static_01.png',
   cloudLarge: 'sprites/T_Env_Cloud_Large.png',
   cloudMedium: 'sprites/T_Env_Cloud_Medium.png',

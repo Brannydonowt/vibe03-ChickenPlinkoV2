@@ -3,6 +3,7 @@ import { Egg } from '../entities/Egg.js';
 
 const STATES = {
   IDLE: 'idle',
+  WARMUP: 'warmup',
   DROP: 'drop',
   LAND: 'land',
   HATCH: 'hatch',
@@ -12,8 +13,8 @@ const STATES = {
 const STUCK_SPEED_THRESHOLD = 0.5;
 const STUCK_TIME_THRESHOLD = 2.0;
 const STUCK_WALL_MARGIN = 25;
-const STUCK_NUDGE_FORCE = 0.15;
-const STUCK_NUDGE_UP = -0.1;
+const STUCK_NUDGE_FORCE = 0.05;
+const STUCK_NUDGE_UP = -0.035;
 
 export class GameLoop {
   constructor({ renderer, physics, camera, board, chicken, scoreManager, particleSystem, hud, audio, input, textures }) {
@@ -62,7 +63,7 @@ export class GameLoop {
 
   _onTap() {
     if (this.state === STATES.IDLE) {
-      this._enterDrop();
+      this._enterWarmup();
     }
   }
 
@@ -285,10 +286,9 @@ export class GameLoop {
     }
   }
 
-  _enterDrop() {
-    this.state = STATES.DROP;
+  _enterWarmup() {
+    this.state = STATES.WARMUP;
     this._stateTimer = 0;
-    this._stuckTimer = 0;
     this._bonusGold = 0;
     this.hud.hideTapPrompt();
     this.hud.hidePowerupButton();
@@ -298,17 +298,32 @@ export class GameLoop {
       this._dupliBounceActive = false;
     }
 
-    this.chicken.lay();
-    this.audio.chickenCluck();
+    this.chicken.warmup(
+      [this.textures.chickenLay0, this.textures.chickenLay1],
+      CHICKEN.WARMUP_DURATION
+    );
+    this.audio.chickenSqueeze();
+    this.camera.setTargetZoom(CAMERA.WARMUP_ZOOM);
+  }
 
-    setTimeout(() => {
-      if (this.state !== STATES.DROP) return;
-      const x = this.chicken.getDropX();
-      const y = this.chicken.getDropY();
-      this.egg = new Egg(x, y, this.physics, this.textures.egg);
-      this.renderer.scene.add(this.egg.mesh);
-      this.camera.setTargetZoom(CAMERA.DROP_ZOOM_START);
-    }, CHICKEN.LAY_DURATION * 500);
+  _enterDrop() {
+    this.state = STATES.DROP;
+    this._stateTimer = 0;
+    this._stuckTimer = 0;
+
+    this.chicken.stopWarmup();
+    this.chicken.lay();
+    this.audio.eggPop();
+    this.camera.shake(5.0);
+
+    const x = this.chicken.getDropX();
+    const y = this.chicken.getDropY();
+    this.egg = new Egg(x, y, this.physics, this.textures.egg);
+    this.renderer.scene.add(this.egg.mesh);
+
+    this.particles.emitEggPop(x, -y);
+
+    this.camera.setTargetZoom(CAMERA.DROP_ZOOM_START);
   }
 
   _enterHatch() {
@@ -357,6 +372,9 @@ export class GameLoop {
       case STATES.IDLE:
         this._updateIdle(delta);
         break;
+      case STATES.WARMUP:
+        this._updateWarmup(delta);
+        break;
       case STATES.DROP:
         this._updateDrop(delta);
         break;
@@ -381,6 +399,20 @@ export class GameLoop {
     this._idleDelay -= delta;
     if (this._idleDelay <= 0) {
       this.hud.showTapPrompt();
+    }
+  }
+
+  _updateWarmup(delta) {
+    this._stateTimer += delta;
+
+    this.camera.followX(this.chicken.getX());
+    this.camera.followY(CHICKEN.Y_POS);
+
+    const t = Math.min(this._stateTimer / CHICKEN.WARMUP_DURATION, 1);
+    this.camera.shake(t * t * 0.8);
+
+    if (this._stateTimer >= CHICKEN.WARMUP_DURATION) {
+      this._enterDrop();
     }
   }
 

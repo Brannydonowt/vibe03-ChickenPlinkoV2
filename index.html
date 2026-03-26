@@ -6,6 +6,9 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="mobile-web-app-capable" content="yes" />
   <title>Egg Plinko</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Lilita+One&display=swap" rel="stylesheet">
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     html, body {
@@ -130,27 +133,62 @@
       opacity: 1;
     }
 
-    .tap-prompt {
+    .tap-prompt-container {
       position: absolute;
-      bottom: 25%;
-      left: 50%;
-      transform: translateX(-50%);
-      color: #fff;
-      font-size: 18px;
-      font-weight: 700;
-      text-shadow: 0 2px 12px rgba(0,0,0,0.6);
-      letter-spacing: 1.5px;
-      white-space: nowrap;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      pointer-events: none;
       opacity: 0;
-      transition: opacity 0.4s ease;
-      animation: pulse 1.4s ease-in-out infinite;
+      transition: opacity 0.5s ease;
     }
-    .tap-prompt.visible {
+    .tap-prompt-container.visible {
       opacity: 1;
     }
-    @keyframes pulse {
-      0%, 100% { transform: translateX(-50%) scale(1); }
-      50% { transform: translateX(-50%) scale(1.08); }
+
+    .tap-prompt-text {
+      position: absolute;
+      top: 18%;
+      left: 50%;
+      transform: translateX(-50%);
+      font-family: 'Lilita One', 'Impact', 'Arial Black', sans-serif;
+      font-size: clamp(28px, 7.5vw, 48px);
+      font-weight: 900;
+      color: #FFD700;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      white-space: nowrap;
+      -webkit-text-stroke: 2.5px #1a1a1a;
+      paint-order: stroke fill;
+      text-shadow:
+        0 3px 0 #B8860B,
+        0 5px 10px rgba(0,0,0,0.5),
+        0 0 24px rgba(255,215,0,0.3);
+      animation: tap-text-pulse 1.6s ease-in-out infinite;
+      z-index: 2;
+    }
+
+    @keyframes tap-text-pulse {
+      0%, 100% { transform: translateX(-50%) scale(1); filter: brightness(1); }
+      50% { transform: translateX(-50%) scale(1.06); filter: brightness(1.15); }
+    }
+
+    .tap-icon-wrapper {
+      position: absolute;
+      top: 56%;
+      left: 58%;
+      transform: translate(-10%, 0%);
+      animation: tap-icon-bounce 1.4s ease-in-out infinite;
+      z-index: 1;
+    }
+    .tap-icon-wrapper img {
+      width: clamp(80px, 22vw, 140px);
+      height: auto;
+      filter: drop-shadow(0 4px 12px rgba(0,0,0,0.4));
+    }
+
+    @keyframes tap-icon-bounce {
+      0%, 100% { transform: translate(-10%, 0%) scale(1); }
+      50% { transform: translate(-10%, -4%) scale(1.02); }
     }
 
     .screen-flash {
@@ -289,7 +327,12 @@
       </button>
     </div>
     <div class="combo-display" id="combo-display">x1</div>
-    <div class="tap-prompt" id="tap-prompt">TAP TO LAY EGG</div>
+    <div class="tap-prompt-container" id="tap-prompt">
+      <div class="tap-prompt-text">LAY YOUR EGG!</div>
+      <div class="tap-icon-wrapper">
+        <img src="sprites/left-click.png" alt="" />
+      </div>
+    </div>
     <div class="screen-flash" id="screen-flash"></div>
     <div class="edge-glow" id="edge-glow"></div>
   </div>

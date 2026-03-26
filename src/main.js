@@ -23,6 +23,9 @@ async function init() {
   const input = new InputManager(renderer.getCanvas());
   const audio = new AudioManager();
   await audio.loadSound('chickenCluck', 'sounds/SFX_ChickenCluck.ogg');
+  await audio.loadSound('chickenSqueeze1', 'sounds/SFX_Branny_ChickenSqueeze01.ogg');
+  await audio.loadSound('chickenSqueeze2', 'sounds/SFX_Branny_ChickenSqueeze02.ogg');
+  await audio.loadSound('chickenSqueeze3', 'sounds/SFX_Branny_ChickenSqueeze03.ogg');
   const scoreManager = new ScoreManager();
   const particleSystem = new ParticleSystem(renderer.scene);
   const board = new Board(renderer.scene, physics);

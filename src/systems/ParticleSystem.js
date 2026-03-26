@@ -144,6 +144,39 @@ export class ParticleSystem {
     });
   }
 
+  emitEggPop(x, y) {
+    this.emit(x, y, 12, {
+      color: COLORS.SPARK,
+      speed: 100,
+      life: 0.4,
+      size: 3.5,
+      spread: Math.PI * 2,
+      angle: 0,
+      gravity: 60,
+      drag: 0.96,
+    });
+    this.emit(x, y, 8, {
+      color: COLORS.GOLD_PARTICLE,
+      speed: 70,
+      life: 0.35,
+      size: 3,
+      spread: Math.PI * 2,
+      angle: 0,
+      gravity: 80,
+      drag: 0.95,
+    });
+    this.emit(x, y - 10, 5, {
+      color: COLORS.SHELL_PARTICLE,
+      speed: 40,
+      life: 0.5,
+      size: 4,
+      spread: Math.PI * 0.6,
+      angle: Math.PI / 2,
+      gravity: 200,
+      drag: 0.97,
+    });
+  }
+
   emitDust(x, y) {
     this.emit(x, y, 8, {
       color: COLORS.DUST,
