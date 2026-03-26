@@ -16,10 +16,28 @@ export class HUD {
 
     this._subtleTapPrompt = document.getElementById('tap-prompt-subtle');
 
-    this._upgradeBar = document.getElementById('upgrade-bar');
-    this._upgradeBtn = document.getElementById('upgrade-buy-chicken');
-    this._upgradeCostEl = document.getElementById('upgrade-chicken-cost');
-    this._upgradeRevealed = false;
+    this._upgradeToggle = document.getElementById('upgrade-toggle');
+    this._upgradeBackdrop = document.getElementById('upgrade-backdrop');
+    this._upgradePanel = document.getElementById('upgrade-panel');
+    this._upgradeClose = document.getElementById('upgrade-close');
+    this._buyAutoChickenBtn = document.getElementById('buy-auto-chicken');
+    this._autoChickenCostEl = document.getElementById('auto-chicken-cost');
+    this._autoChickenCountEl = document.getElementById('auto-chicken-count');
+
+    this._panelOpen = false;
+
+    this._upgradeToggle.addEventListener('pointerdown', (e) => {
+      e.stopPropagation();
+      this.openUpgradePanel();
+    });
+    this._upgradeClose.addEventListener('pointerdown', (e) => {
+      e.stopPropagation();
+      this.closeUpgradePanel();
+    });
+    this._upgradeBackdrop.addEventListener('pointerdown', (e) => {
+      e.stopPropagation();
+      this.closeUpgradePanel();
+    });
   }
 
   setGold(value) {
@@ -121,33 +139,52 @@ export class HUD {
     });
   }
 
-  showUpgradeBar() {
-    this._upgradeRevealed = true;
-    this._upgradeBar.classList.add('visible');
+  /* --- Upgrade Toggle & Panel --- */
+
+  showUpgradeToggle() {
+    this._upgradeToggle.classList.add('visible');
   }
 
-  hideUpgradeBar() {
-    this._upgradeBar.classList.remove('visible');
+  hideUpgradeToggle() {
+    this._upgradeToggle.classList.remove('visible');
   }
 
-  setUpgradeCost(cost) {
-    this._upgradeCostEl.textContent = cost;
+  openUpgradePanel() {
+    if (this._panelOpen) return;
+    this._panelOpen = true;
+    this._upgradePanel.classList.add('open');
+    this._upgradeBackdrop.classList.add('open');
   }
 
-  setUpgradeAffordable(canAfford) {
+  closeUpgradePanel() {
+    if (!this._panelOpen) return;
+    this._panelOpen = false;
+    this._upgradePanel.classList.remove('open');
+    this._upgradeBackdrop.classList.remove('open');
+  }
+
+  isPanelOpen() {
+    return this._panelOpen;
+  }
+
+  setAutoChickenCost(cost) {
+    this._autoChickenCostEl.textContent = cost;
+  }
+
+  setAutoChickenCount(count) {
+    this._autoChickenCountEl.textContent = count > 0 ? `Owned: ${count}` : '';
+  }
+
+  setAutoChickenAffordable(canAfford) {
     if (canAfford) {
-      this._upgradeBtn.classList.remove('disabled');
+      this._buyAutoChickenBtn.classList.remove('cannot-afford');
     } else {
-      this._upgradeBtn.classList.add('disabled');
+      this._buyAutoChickenBtn.classList.add('cannot-afford');
     }
   }
 
-  isUpgradeRevealed() {
-    return this._upgradeRevealed;
-  }
-
-  onUpgradeChickenClick(callback) {
-    this._upgradeBtn.addEventListener('pointerdown', (e) => {
+  onAutoChickenBuy(callback) {
+    this._buyAutoChickenBtn.addEventListener('pointerdown', (e) => {
       e.stopPropagation();
       callback();
     });

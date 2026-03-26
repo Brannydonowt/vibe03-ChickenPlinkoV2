@@ -49,36 +49,38 @@
       z-index: 10;
     }
 
-    .hud-top {
+    .hud-top-left {
+      position: absolute;
+      top: 0; left: 0;
       display: flex;
-      justify-content: center;
-      align-items: center;
-      padding: 16px 20px;
-      gap: 16px;
+      flex-direction: column;
+      align-items: flex-start;
+      padding: 14px 16px;
+      gap: 8px;
+      z-index: 2;
     }
 
     .gold-pill {
       display: flex;
       align-items: center;
-      gap: 6px;
-      background: rgba(0,0,0,0.35);
+      gap: 8px;
+      background: rgba(0,0,0,0.45);
       backdrop-filter: blur(8px);
       -webkit-backdrop-filter: blur(8px);
-      border: 1px solid rgba(255,215,0,0.4);
-      border-radius: 20px;
-      padding: 6px 16px;
+      border: 1.5px solid rgba(255,215,0,0.5);
+      border-radius: 22px;
+      padding: 6px 14px 6px 8px;
       color: #FFD700;
-      font-size: 20px;
+      font-size: 22px;
       font-weight: 700;
       letter-spacing: 0.5px;
       transition: transform 0.15s ease;
+      pointer-events: auto;
     }
     .gold-pill .coin-icon {
-      width: 22px; height: 22px;
-      background: radial-gradient(circle at 35% 35%, #FFE44D, #FFA500);
-      border-radius: 50%;
-      border: 2px solid #DAA520;
+      width: 26px; height: 26px;
       flex-shrink: 0;
+      filter: drop-shadow(0 1px 2px rgba(0,0,0,0.3));
     }
     .gold-pill.punch {
       transform: scale(1.2);
@@ -86,6 +88,44 @@
     .gold-pill.throb {
       transform: scale(1.35);
       box-shadow: 0 0 14px rgba(255,215,0,0.7);
+    }
+
+    .upgrade-toggle {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 44px; height: 44px;
+      background: rgba(0,0,0,0.45);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      border: 1.5px solid rgba(255,215,0,0.45);
+      border-radius: 14px;
+      cursor: pointer;
+      pointer-events: auto;
+      opacity: 0;
+      transform: translateY(-6px);
+      transition: opacity 0.35s ease, transform 0.35s ease, border-color 0.2s ease;
+      visibility: hidden;
+    }
+    .upgrade-toggle.visible {
+      opacity: 1;
+      transform: translateY(0);
+      visibility: visible;
+    }
+    .upgrade-toggle:active {
+      transform: scale(0.92);
+    }
+    .upgrade-toggle img {
+      width: 22px; height: 22px;
+      filter: brightness(0) saturate(100%) invert(82%) sepia(60%) saturate(500%) hue-rotate(5deg) brightness(104%) contrast(104%);
+    }
+
+    .hud-top-center {
+      position: absolute;
+      top: 0; left: 0; width: 100%;
+      display: flex;
+      justify-content: center;
+      padding: 16px 20px;
     }
 
     .flying-coin {
@@ -305,76 +345,194 @@
       50% { box-shadow: 0 0 22px rgba(255,215,0,0.7), inset 0 0 10px rgba(255,215,0,0.2); }
     }
 
-    /* Upgrade Bar */
-    .upgrade-bar {
+    /* Upgrade Panel Backdrop */
+    .upgrade-backdrop {
       position: absolute;
-      bottom: 0;
-      left: 0;
-      width: 100%;
-      display: flex;
-      justify-content: center;
-      padding: 16px 20px;
-      pointer-events: none;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0,0,0,0.5);
       opacity: 0;
-      transform: translateY(8px);
-      transition: opacity 0.35s ease, transform 0.35s ease;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+      z-index: 30;
     }
-    .upgrade-bar.visible {
+    .upgrade-backdrop.open {
       opacity: 1;
+      pointer-events: auto;
+    }
+
+    /* Upgrade Panel (slide-up sheet) */
+    .upgrade-panel {
+      position: absolute;
+      bottom: 0; left: 0;
+      width: 100%;
+      max-height: 65%;
+      background: rgba(18,18,30,0.92);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-top: 2px solid rgba(255,215,0,0.35);
+      border-radius: 20px 20px 0 0;
+      transform: translateY(100%);
+      transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+      pointer-events: none;
+      z-index: 31;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .upgrade-panel.open {
       transform: translateY(0);
       pointer-events: auto;
     }
 
-    .upgrade-btn {
+    .upgrade-panel-header {
       display: flex;
-      flex-direction: column;
       align-items: center;
-      gap: 4px;
-      background: rgba(0,0,0,0.45);
-      backdrop-filter: blur(8px);
-      -webkit-backdrop-filter: blur(8px);
-      border: 1.5px solid rgba(255,215,0,0.45);
-      border-radius: 16px;
-      padding: 10px 24px;
+      justify-content: space-between;
+      padding: 14px 18px 10px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      flex-shrink: 0;
+    }
+    .upgrade-panel-title {
+      font-family: 'Lilita One', 'Impact', sans-serif;
+      font-size: 22px;
       color: #FFD700;
-      font-family: inherit;
-      font-size: 15px;
-      font-weight: 700;
-      letter-spacing: 0.4px;
+      letter-spacing: 1px;
+    }
+    .upgrade-panel-close {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 36px; height: 36px;
+      background: rgba(255,255,255,0.08);
+      border: none;
+      border-radius: 50%;
       cursor: pointer;
       pointer-events: auto;
-      transition: transform 0.15s ease, border-color 0.25s ease,
-                  box-shadow 0.25s ease, opacity 0.25s ease;
+      transition: background 0.2s ease;
     }
-    .upgrade-btn:active {
-      transform: scale(0.95);
+    .upgrade-panel-close:active {
+      background: rgba(255,255,255,0.18);
+    }
+    .upgrade-panel-close img {
+      width: 16px; height: 16px;
+      filter: brightness(0) invert(1);
+      opacity: 0.7;
     }
 
-    .upgrade-label {
-      font-size: 15px;
-      white-space: nowrap;
+    .upgrade-panel-list {
+      padding: 10px 14px 20px;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
     }
 
-    .upgrade-cost {
+    .upgrade-item {
       display: flex;
       align-items: center;
-      gap: 5px;
-      font-size: 14px;
-      opacity: 0.9;
+      gap: 12px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 14px;
+      padding: 12px;
+      transition: border-color 0.2s ease;
     }
-    .upgrade-cost .mini-coin {
-      width: 14px; height: 14px;
-      background: radial-gradient(circle at 35% 35%, #FFE44D, #FFA500);
-      border-radius: 50%;
-      border: 1.5px solid #DAA520;
+
+    .upgrade-item-icon {
+      width: 44px; height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(255,215,0,0.12);
+      border-radius: 12px;
+      font-size: 24px;
       flex-shrink: 0;
     }
 
-    .upgrade-btn.disabled {
-      opacity: 0.35;
+    .upgrade-item-info {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .upgrade-item-name {
+      font-size: 15px;
+      font-weight: 700;
+      color: #fff;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .upgrade-item-desc {
+      font-size: 12px;
+      color: rgba(255,255,255,0.5);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .upgrade-item-count {
+      font-size: 11px;
+      color: rgba(255,215,0,0.7);
+      font-weight: 600;
+    }
+
+    .upgrade-item-buy {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      min-width: 88px;
+      height: 40px;
+      background: #4CAF50;
+      border: none;
+      border-radius: 12px;
+      padding: 0 14px;
+      color: #fff;
+      font-family: inherit;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      pointer-events: auto;
+      flex-shrink: 0;
+      transition: background 0.2s ease, transform 0.12s ease, opacity 0.2s ease;
+    }
+    .upgrade-item-buy:active {
+      transform: scale(0.95);
+    }
+    .upgrade-item-buy .buy-coin {
+      width: 18px; height: 18px;
+      flex-shrink: 0;
+      filter: drop-shadow(0 1px 1px rgba(0,0,0,0.3));
+    }
+    .upgrade-item-buy.cannot-afford {
+      background: #555;
+      color: #999;
+      cursor: default;
+    }
+    .upgrade-item-buy.cannot-afford .buy-coin {
+      opacity: 0.5;
+    }
+
+    .upgrade-item.coming-soon {
+      opacity: 0.4;
       pointer-events: none;
-      border-color: rgba(255,255,255,0.15);
-      color: #aaa;
+    }
+    .upgrade-item.coming-soon .upgrade-item-icon {
+      background: rgba(255,255,255,0.06);
+      color: rgba(255,255,255,0.3);
+      font-weight: 700;
+    }
+    .upgrade-item-buy.locked {
+      background: rgba(255,255,255,0.08);
+      color: rgba(255,255,255,0.35);
+      cursor: default;
+      pointer-events: none;
+      min-width: 72px;
+      font-size: 13px;
     }
 
     /* Subtle tap prompt (post-FTUE overview mode) */
@@ -416,11 +574,16 @@
   <div id="game-viewport">
   <div id="game"></div>
   <div id="hud">
-    <div class="hud-top">
+    <div class="hud-top-left">
       <div class="gold-pill">
-        <div class="coin-icon"></div>
+        <img class="coin-icon" src="sprites/icons/Coin.svg" alt="" />
         <span id="gold-count">0</span>
       </div>
+      <button class="upgrade-toggle" id="upgrade-toggle">
+        <img src="sprites/icons/Arrow 2 Up.svg" alt="Upgrades" />
+      </button>
+    </div>
+    <div class="hud-top-center">
       <div class="score-display" id="score-display">
         <span id="score-count">0</span> pts
       </div>
@@ -443,14 +606,36 @@
       <img src="sprites/left-click.png" alt="" />
       <span>Tap to lay!</span>
     </div>
-    <div class="upgrade-bar" id="upgrade-bar">
-      <button class="upgrade-btn" id="upgrade-buy-chicken">
-        <span class="upgrade-label">Buy Chicken</span>
-        <span class="upgrade-cost">
-          <span class="mini-coin"></span>
-          <span id="upgrade-chicken-cost">250</span>
-        </span>
-      </button>
+    <div class="upgrade-backdrop" id="upgrade-backdrop"></div>
+    <div class="upgrade-panel" id="upgrade-panel">
+      <div class="upgrade-panel-header">
+        <span class="upgrade-panel-title">Upgrades</span>
+        <button class="upgrade-panel-close" id="upgrade-close">
+          <img src="sprites/icons/X Button.svg" alt="Close" />
+        </button>
+      </div>
+      <div class="upgrade-panel-list" id="upgrade-list">
+        <div class="upgrade-item" id="upgrade-auto-chicken">
+          <div class="upgrade-item-icon">&#x1F414;</div>
+          <div class="upgrade-item-info">
+            <span class="upgrade-item-name">Auto Chicken</span>
+            <span class="upgrade-item-desc">Lays eggs on its own</span>
+            <span class="upgrade-item-count" id="auto-chicken-count"></span>
+          </div>
+          <button class="upgrade-item-buy" id="buy-auto-chicken">
+            <img class="buy-coin" src="sprites/icons/Coin.svg" alt="" />
+            <span class="buy-price" id="auto-chicken-cost">250</span>
+          </button>
+        </div>
+        <div class="upgrade-item coming-soon">
+          <div class="upgrade-item-icon">?</div>
+          <div class="upgrade-item-info">
+            <span class="upgrade-item-name">???</span>
+            <span class="upgrade-item-desc">Coming soon!</span>
+          </div>
+          <button class="upgrade-item-buy locked" disabled>Soon</button>
+        </div>
+      </div>
     </div>
     <div class="screen-flash" id="screen-flash"></div>
     <div class="edge-glow" id="edge-glow"></div>

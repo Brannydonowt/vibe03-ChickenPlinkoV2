@@ -63,13 +63,13 @@ export class GameLoop {
     this.input.onTap(this._onTap);
 
     this.hud.onPowerupClick(() => this.purchaseDupliBounce());
-    this.hud.onUpgradeChickenClick(() => this.purchaseAutoChicken());
+    this.hud.onAutoChickenBuy(() => this.purchaseAutoChicken());
 
     this._enterIdle();
   }
 
   _onTap() {
-    if (this.state === STATES.IDLE) {
+    if (this.state === STATES.IDLE && !this.hud.isPanelOpen()) {
       this._enterWarmup();
     }
   }
@@ -300,8 +300,9 @@ export class GameLoop {
     this.audio.purchasePowerup();
 
     const newCost = this._getAutoChickenCost();
-    this.hud.setUpgradeCost(newCost);
-    this.hud.setUpgradeAffordable(this.score.canAfford(newCost));
+    this.hud.setAutoChickenCost(newCost);
+    this.hud.setAutoChickenCount(this._numAutoChickens);
+    this.hud.setAutoChickenAffordable(this.score.canAfford(newCost));
   }
 
   _spawnAutoEgg(autoChicken) {
@@ -349,7 +350,7 @@ export class GameLoop {
       24, '#FFE680'
     );
 
-    this._updateUpgradeBarAffordability();
+    this._updateUpgradeAffordability();
 
     setTimeout(() => {
       if (autoEgg.alive) {
@@ -368,7 +369,7 @@ export class GameLoop {
     this.score.collectGold(gold);
     this.hud.setGold(this.score.totalGold);
 
-    this._updateUpgradeBarAffordability();
+    this._updateUpgradeAffordability();
 
     setTimeout(() => {
       if (autoEgg.alive) {
@@ -379,10 +380,10 @@ export class GameLoop {
     }, 100);
   }
 
-  _updateUpgradeBarAffordability() {
-    if (this.hud.isUpgradeRevealed()) {
+  _updateUpgradeAffordability() {
+    if (this._hasPlayedRound) {
       const cost = this._getAutoChickenCost();
-      this.hud.setUpgradeAffordable(this.score.canAfford(cost));
+      this.hud.setAutoChickenAffordable(this.score.canAfford(cost));
     }
   }
 
@@ -415,15 +416,12 @@ export class GameLoop {
       this.camera.followY(CHICKEN.Y_POS);
     }
 
-    const chickenCost = this._getAutoChickenCost();
-    if (this.hud.isUpgradeRevealed()) {
-      this.hud.setUpgradeCost(chickenCost);
-      this.hud.setUpgradeAffordable(this.score.canAfford(chickenCost));
-      this.hud.showUpgradeBar();
-    } else if (this.score.totalGold >= chickenCost) {
-      this.hud.setUpgradeCost(chickenCost);
-      this.hud.setUpgradeAffordable(true);
-      this.hud.showUpgradeBar();
+    if (this._hasPlayedRound) {
+      const chickenCost = this._getAutoChickenCost();
+      this.hud.setAutoChickenCost(chickenCost);
+      this.hud.setAutoChickenCount(this._numAutoChickens);
+      this.hud.setAutoChickenAffordable(this.score.canAfford(chickenCost));
+      this.hud.showUpgradeToggle();
     }
   }
 
@@ -434,7 +432,8 @@ export class GameLoop {
     this.hud.hideTapPrompt();
     this.hud.hideSubtleTapPrompt();
     this.hud.hidePowerupButton();
-    this.hud.hideUpgradeBar();
+    this.hud.closeUpgradePanel();
+    this.hud.hideUpgradeToggle();
 
     if (this._dupliBounceActive) {
       this._dupliBounceInFlight = true;
