@@ -1,0 +1,14 @@
+---
+description: Ensure all completed work is committed and pushed to git
+alwaysApply: true
+---
+
+# Commit & Push on Task Completion
+
+When you finish a task or the user indicates work is done:
+
+1. **Stage** all relevant changed files.
+2. **Commit** with a concise, descriptive message. Include the version string if game code was changed (see version-bump rule).
+3. **Push** to the remote immediately after a successful commit.
+
+Do not leave uncommitted work at the end of a task.
