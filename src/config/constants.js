@@ -1,3 +1,12 @@
+export const VERSION = {
+  MAJOR: 1,
+  MINOR: 0,
+  BUILD: 1,
+  toString() {
+    return `v${this.MAJOR}.${this.MINOR} build ${this.BUILD}`;
+  },
+};
+
 export const DISPLAY = {
   ASPECT: 9 / 16,
 };

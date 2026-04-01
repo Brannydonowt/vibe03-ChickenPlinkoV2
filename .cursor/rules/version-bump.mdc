@@ -1,0 +1,28 @@
+---
+description: Enforce version bumping in ChickenPlinkoV2 when code changes are made
+globs: ChickenPlinkoV2/src/**/*.js
+alwaysApply: false
+---
+
+# Version Bumping — Chicken Plinko V2
+
+The game version lives in `ChickenPlinkoV2/src/config/constants.js` in the `VERSION` export:
+
+```js
+export const VERSION = {
+  MAJOR: 1,   // Breaking / milestone releases
+  MINOR: 0,   // New features or significant changes
+  BUILD: 1,   // Every commit / iteration
+  toString() {
+    return `v${this.MAJOR}.${this.MINOR} build ${this.BUILD}`;
+  },
+};
+```
+
+## Rules
+
+1. **Every commit** that changes game code must increment `BUILD` by 1.
+2. **New features** (new mechanic, new chicken type, new UI panel, etc.) should also increment `MINOR` and reset `BUILD` to 1.
+3. **Major milestones** (full redesign, public release) should increment `MAJOR`, reset `MINOR` to 0, and reset `BUILD` to 1.
+4. After bumping, confirm the `VERSION` object in `constants.js` reflects the new values before committing.
+5. Include the new version string (e.g. "v1.0 build 2") in the git commit message.

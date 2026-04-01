@@ -11,6 +11,7 @@ import { GameLoop } from './systems/GameLoop.js';
 import { Chicken } from './entities/Chicken.js';
 import { Environment } from './systems/Environment.js';
 import { HUD } from './ui/HUD.js';
+import { VERSION } from './config/constants.js';
 
 async function init() {
   const textures = await AssetLoader.loadAll();
@@ -33,6 +34,7 @@ async function init() {
   const chicken = new Chicken(textures);
   renderer.scene.add(chicken.group);
   const hud = new HUD();
+  document.getElementById('version-label').textContent = VERSION.toString();
 
   const gameLoop = new GameLoop({
     renderer,

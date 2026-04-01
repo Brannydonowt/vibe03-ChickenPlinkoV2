@@ -120,6 +120,18 @@
       filter: brightness(0) saturate(100%) invert(82%) sepia(60%) saturate(500%) hue-rotate(5deg) brightness(104%) contrast(104%);
     }
 
+    .version-label {
+      position: absolute;
+      top: 14px; right: 14px;
+      font-size: 11px;
+      font-weight: 600;
+      color: rgba(255,255,255,0.35);
+      letter-spacing: 0.3px;
+      pointer-events: none;
+      z-index: 2;
+      text-shadow: 0 1px 3px rgba(0,0,0,0.4);
+    }
+
     .hud-top-center {
       position: absolute;
       top: 0; left: 0; width: 100%;
@@ -592,6 +604,7 @@
         <img src="sprites/icons/Arrow 2 Up.svg" alt="Upgrades" />
       </button>
     </div>
+    <div class="version-label" id="version-label"></div>
     <div class="hud-top-center">
       <div class="score-display" id="score-display">
         <span id="score-count">0</span> pts
