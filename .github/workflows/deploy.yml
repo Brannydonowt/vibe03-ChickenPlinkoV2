@@ -4,18 +4,21 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version label (e.g. v1, v2). Leave blank for latest-only deploy.'
+        required: false
+        type: string
 
 permissions:
-  contents: read
-  pages: write
-  id-token: write
+  contents: write
 
 concurrency:
   group: pages
   cancel-in-progress: true
 
 jobs:
-  build:
+  build-and-deploy:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -28,16 +31,18 @@ jobs:
       - run: npm ci
       - run: npm run build
 
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: dist
+      - name: Prepare deploy directory
+        run: |
+          mkdir -p deploy
+          cp -r dist/* deploy/
+          if [ -n "${{ github.event.inputs.version }}" ]; then
+            mkdir -p "deploy/${{ github.event.inputs.version }}"
+            cp -r dist/* "deploy/${{ github.event.inputs.version }}/"
+          fi
 
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - id: deployment
-        uses: actions/deploy-pages@v4
+      - name: Deploy to gh-pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./deploy
+          keep_files: true
