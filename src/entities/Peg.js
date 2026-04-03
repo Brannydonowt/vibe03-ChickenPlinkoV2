@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { BOARD, COLORS } from '../config/constants.js';
+import { BOARD, COLORS, GOLDEN_PEG } from '../config/constants.js';
 
 export class Peg {
   constructor(x, y, physics) {
@@ -7,6 +7,7 @@ export class Peg {
     this.y = y;
     this.baseScale = 1;
     this._hitTimer = 0;
+    this.isGolden = false;
 
     this.body = physics.createCircle(x, -y, BOARD.PEG_RADIUS, {
       isStatic: true,
@@ -23,9 +24,22 @@ export class Peg {
     this.mesh.position.set(x, -y, 0);
   }
 
+  setGolden(on) {
+    this.isGolden = on;
+    if (on) {
+      this.mesh.material.color.setHex(GOLDEN_PEG.COLOR);
+      this.baseScale = GOLDEN_PEG.SCALE;
+      this.mesh.scale.set(this.baseScale, this.baseScale, 1);
+    } else {
+      this.mesh.material.color.setHex(COLORS.PEG_DEFAULT);
+      this.baseScale = 1;
+      this.mesh.scale.set(1, 1, 1);
+    }
+  }
+
   hit() {
     this._hitTimer = 1.0;
-    this.mesh.material.color.setHex(COLORS.PEG_HIT);
+    this.mesh.material.color.setHex(this.isGolden ? 0xFFFFAA : COLORS.PEG_HIT);
   }
 
   nudge(intensity) {
@@ -37,13 +51,13 @@ export class Peg {
   update(delta) {
     if (this._hitTimer > 0) {
       this._hitTimer -= delta * 6;
-      const scale = 1 + 0.4 * Math.max(this._hitTimer, 0);
+      const scale = this.baseScale + 0.4 * Math.max(this._hitTimer, 0);
       this.mesh.scale.set(scale, scale, 1);
 
       if (this._hitTimer <= 0) {
         this._hitTimer = 0;
-        this.mesh.scale.set(1, 1, 1);
-        this.mesh.material.color.setHex(COLORS.PEG_DEFAULT);
+        this.mesh.scale.set(this.baseScale, this.baseScale, 1);
+        this.mesh.material.color.setHex(this.isGolden ? GOLDEN_PEG.COLOR : COLORS.PEG_DEFAULT);
       }
     }
   }

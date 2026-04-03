@@ -1,4 +1,4 @@
-import { CAMERA, TIMING, CHICKEN, SCORING, EGG, GAME, POWERUP, AUTO_CHICKEN, CHICKEN_TYPES } from '../config/constants.js';
+import { CAMERA, TIMING, CHICKEN, SCORING, EGG, GAME, POWERUP, AUTO_CHICKEN, CHICKEN_TYPES, PLAYER_UPGRADES, GOLDEN_PEG } from '../config/constants.js';
 import { Egg } from '../entities/Egg.js';
 import { AutoChicken } from '../entities/AutoChicken.js';
 
@@ -33,6 +33,7 @@ export class GameLoop {
 
     this.state = STATES.IDLE;
     this.egg = null;
+    this._mainEggs = [];
     this._stateTimer = 0;
     this._wobblePhase = 0;
     this._landingGold = 0;
@@ -52,6 +53,10 @@ export class GameLoop {
     this._bonusGold = 0;
     this._hasPlayedRound = false;
     this._hasPulsedToggle = false;
+    this._roundCount = 0;
+
+    this._playerUpgrades = {};
+    for (const u of PLAYER_UPGRADES) this._playerUpgrades[u.id] = 0;
 
     this._chickenSlots = CHICKEN_TYPES.map(type => ({
       config: type,
@@ -73,7 +78,14 @@ export class GameLoop {
     this.hud.revealUpgradeRow(CHICKEN_TYPES[0].id);
     this.hud.onUpgradeRowClick((typeId) => this._handleUpgradeClick(typeId));
 
+    this.hud.initPlayerUpgradeRows(PLAYER_UPGRADES);
+    this.hud.onPlayerUpgradeRowClick((id) => this._handlePlayerUpgradeClick(id));
+
     this._enterIdle();
+  }
+
+  _getSpeedMult() {
+    return this._roundCount >= 2 ? 0.6 : 1.0;
   }
 
   _onTap() {
@@ -84,24 +96,25 @@ export class GameLoop {
 
   _onCollision(pair) {
     const { bodyA, bodyB } = pair;
-
     const mainValid = this.state === STATES.DROP || this.state === STATES.LAND;
 
-    if (mainValid && this.egg && this.egg.alive && this.state === STATES.DROP) {
-      let other = null;
-      if (bodyA === this.egg.body) other = bodyB;
-      else if (bodyB === this.egg.body) other = bodyA;
+    if (mainValid && this.state === STATES.DROP) {
+      for (const mainEgg of this._mainEggs) {
+        if (!mainEgg.alive || mainEgg.landed) continue;
+        let other = null;
+        if (bodyA === mainEgg.body) other = bodyB;
+        else if (bodyB === mainEgg.body) other = bodyA;
+        if (!other) continue;
 
-      if (other) {
         if (other.label === 'peg' && other.pegRef) {
-          this._handlePegHit(other.pegRef);
+          this._handlePegHit(other.pegRef, mainEgg);
           if (this._dupliBounceInFlight) {
             this._spawnDuplicate(other.pegRef.x, other.pegRef.y);
           }
         } else if (other.label && other.label.startsWith('bin_') && other.binRef) {
-          this._handleBinLand(other.binRef);
-        } else if (other.label === 'floor' && !this.egg.landed) {
-          this._handleFloorLand();
+          this._handleBinLand(other.binRef, mainEgg);
+        } else if (other.label === 'floor' && !mainEgg.landed) {
+          this._handleFloorLand(mainEgg);
         }
         return;
       }
@@ -144,67 +157,108 @@ export class GameLoop {
     }
   }
 
-  _handlePegHit(peg) {
+  _pegHitScreenPos(peg) {
+    return this.renderer.projectToScreen(peg.x, -peg.y);
+  }
+
+  _handlePegHit(peg, mainEgg) {
     peg.hit();
-    this.egg.pegHits++;
+    mainEgg.pegHits++;
     this.board.rippleFrom(peg);
 
     const now = performance.now();
     const { gold, combo } = this.score.onPegHit(now);
+    const finalGold = peg.isGolden ? gold * GOLDEN_PEG.GOLD_MULTIPLIER : gold;
+    if (peg.isGolden) {
+      const extra = finalGold - gold;
+      this.score.totalGold += extra;
+      this.score.currentRunGold += extra;
+    }
 
     const normalizedY = this.board.getNormalizedY(peg.y);
     this.audio.pegHit(normalizedY, combo);
 
-    const speed = this.egg.getSpeed();
+    const speed = mainEgg.getSpeed();
     this.camera.shake(CAMERA.SHAKE_INTENSITY * Math.min(speed / 5, 1.5));
 
     this.particles.emitPegSpark(peg.x, -peg.y);
 
     const textSize = combo > 3 ? 42 : combo > 1 ? 34 : 28;
-    const textColor = combo > 3 ? '#FF6B35' : combo > 1 ? '#FFD700' : '#FFFFFF';
-    this.particles.spawnFloatingText(
-      peg.x, -peg.y + 20,
-      `+${gold}g`,
-      textSize, textColor
-    );
+    const textColor = peg.isGolden ? '#FFFF00' : (combo > 3 ? '#FF6B35' : combo > 1 ? '#FFD700' : '#FFFFFF');
+    this.particles.spawnFloatingGold(peg.x, -peg.y + 20, finalGold, textSize, textColor);
 
+    this.hud.setGold(this.score.totalGold);
     this.hud.setRunGold(this.score.currentRunGold);
     this.hud.setCombo(combo);
     this.hud.setEdgeGlow(combo / SCORING.COMBO_MAX);
+
+    const screenPos = this._pegHitScreenPos(peg);
+    this.hud.spawnFlyingCoin(screenPos.x, screenPos.y);
   }
 
-  _handleBinLand(bin) {
-    if (this.egg.landed) return;
-    this.egg.landed = true;
-    this.egg.landedBin = bin;
+  _handleBinLand(bin, mainEgg) {
+    if (mainEgg.landed) return;
+    mainEgg.landed = true;
+    mainEgg.landedBin = bin;
 
     bin.glow();
     this.audio.eggLand();
     this.particles.emitDust(bin.x, -bin.y + 15);
 
-    this._landingGold = this.score.calculateLanding(bin.multiplier);
-    this.state = STATES.LAND;
-    this._stateTimer = 0;
-    this._freezeTimer = TIMING.LAND_FREEZE;
-
     this.camera.shake(3.0);
-    if (this.egg) {
-      this.egg.setSquash(1.3, 0.7);
+    mainEgg.setSquash(1.3, 0.7);
+
+    if (this._allMainEggsLanded()) {
+      const bestBin = this._getBestBin();
+      this._landingGold = this.score.calculateLandingBonus(bestBin.multiplier);
+      this.egg = this._getHatchEgg();
+      this.state = STATES.LAND;
+      this._stateTimer = 0;
+      this._freezeTimer = TIMING.LAND_FREEZE;
     }
   }
 
-  _handleFloorLand() {
-    if (!this.egg || this.egg.landed) return;
-    this.egg.landed = true;
+  _handleFloorLand(mainEgg) {
+    if (!mainEgg || mainEgg.landed) return;
+    mainEgg.landed = true;
     this.audio.eggLand();
-    this._landingGold = this.score.calculateLanding(1);
-    this.state = STATES.LAND;
-    this._stateTimer = 0;
-    this._freezeTimer = TIMING.LAND_FREEZE;
-    this.camera.shake(2.0);
-    if (this.egg) {
-      this.egg.setSquash(1.3, 0.7);
+
+    if (this._allMainEggsLanded()) {
+      const bestBin = this._getBestBin();
+      if (bestBin) {
+        this._landingGold = this.score.calculateLandingBonus(bestBin.multiplier);
+      } else {
+        this._landingGold = 0;
+      }
+      this.egg = this._getHatchEgg();
+      this.state = STATES.LAND;
+      this._stateTimer = 0;
+      this._freezeTimer = TIMING.LAND_FREEZE;
+      this.camera.shake(2.0);
+      if (this.egg) this.egg.setSquash(1.3, 0.7);
     }
+  }
+
+  _allMainEggsLanded() {
+    return this._mainEggs.every(e => e.landed || !e.alive);
+  }
+
+  _getBestBin() {
+    let best = null;
+    for (const e of this._mainEggs) {
+      if (e.landedBin && (!best || e.landedBin.multiplier > best.multiplier)) {
+        best = e.landedBin;
+      }
+    }
+    return best;
+  }
+
+  _getHatchEgg() {
+    const bestBin = this._getBestBin();
+    if (bestBin) {
+      return this._mainEggs.find(e => e.landedBin === bestBin) || this._mainEggs[0];
+    }
+    return this._mainEggs[0];
   }
 
   _spawnDuplicate(pegX, pegY) {
@@ -229,15 +283,21 @@ export class GameLoop {
     dupe.pegHits++;
     this.board.rippleFrom(peg);
 
-    this.score.currentRunGold += 1;
+    const gold = peg.isGolden ? GOLDEN_PEG.GOLD_MULTIPLIER : 1;
+    this.score.currentRunGold += gold;
+    this.score.totalGold += gold;
 
     const normalizedY = this.board.getNormalizedY(peg.y);
     this.audio.pegHit(normalizedY, 1);
 
     this.particles.emitPegSpark(peg.x, -peg.y);
-    this.particles.spawnFloatingText(peg.x, -peg.y + 20, '+1g', 22, '#DDDDDD');
+    this.particles.spawnFloatingGold(peg.x, -peg.y + 20, gold, 22, peg.isGolden ? '#FFFF00' : '#DDDDDD');
 
+    this.hud.setGold(this.score.totalGold);
     this.hud.setRunGold(this.score.currentRunGold);
+
+    const screenPos = this._pegHitScreenPos(peg);
+    this.hud.spawnFlyingCoin(screenPos.x, screenPos.y);
   }
 
   _handleDupeBinLand(bin, dupe) {
@@ -249,7 +309,7 @@ export class GameLoop {
     this.audio.eggLand();
     this.particles.emitDust(bin.x, -bin.y + 15);
 
-    const gold = this.score.calculateLanding(bin.multiplier);
+    const gold = this.score.calculateLandingBonus(bin.multiplier);
     this._bonusGold += gold;
 
     this.particles.spawnFloatingText(
@@ -281,11 +341,58 @@ export class GameLoop {
 
   _cleanupDuplicates() {
     for (const dupe of this._duplicateEggs) {
-      if (dupe.alive) {
-        dupe.destroy(this.renderer.scene);
-      }
+      if (dupe.alive) dupe.destroy(this.renderer.scene);
     }
     this._duplicateEggs = [];
+  }
+
+  _cleanupMainEggs() {
+    for (const e of this._mainEggs) {
+      if (e !== this.egg && e.alive) e.destroy(this.renderer.scene);
+    }
+    this._mainEggs = [];
+  }
+
+  /* --- Player upgrade system --- */
+
+  _getPlayerUpgradeCost(config) {
+    const level = this._playerUpgrades[config.id];
+    if (level >= config.maxLevel) return Infinity;
+    return Math.floor(config.baseCost * Math.pow(config.costMult, level));
+  }
+
+  _handlePlayerUpgradeClick(upgradeId) {
+    if (this.state !== STATES.IDLE) return;
+    const config = PLAYER_UPGRADES.find(u => u.id === upgradeId);
+    if (!config) return;
+
+    const cost = this._getPlayerUpgradeCost(config);
+    if (!this.score.canAfford(cost)) return;
+
+    this.score.spendGold(cost);
+    this.hud.setGold(this.score.totalGold);
+    this._playerUpgrades[upgradeId]++;
+
+    this.audio.purchasePowerup();
+    this._syncAllUpgradeRows();
+  }
+
+  _syncPlayerUpgradeRows() {
+    let anyAffordable = false;
+    for (const config of PLAYER_UPGRADES) {
+      const level = this._playerUpgrades[config.id];
+      const cost = this._getPlayerUpgradeCost(config);
+      const canAfford = this.score.canAfford(cost);
+      if (canAfford && cost !== Infinity) anyAffordable = true;
+
+      this.hud.updatePlayerUpgradeRow(config.id, {
+        level,
+        cost: cost === Infinity ? '---' : cost,
+        canAfford,
+        maxLevel: config.maxLevel,
+      });
+    }
+    return anyAffordable;
   }
 
   /* --- Chicken upgrade system --- */
@@ -367,7 +474,8 @@ export class GameLoop {
         maxLevel: AUTO_CHICKEN.MAX_LEVEL,
       });
     }
-    this.hud.setUpgradeToggleHighlight(anyAffordable);
+    const playerAffordable = this._syncPlayerUpgradeRows();
+    this.hud.setUpgradeToggleHighlight(anyAffordable || playerAffordable);
     this._updateGoalBar();
   }
 
@@ -390,6 +498,17 @@ export class GameLoop {
         cheapest = { emoji: slot.config.emoji, name: label, cost };
       }
     }
+
+    for (const config of PLAYER_UPGRADES) {
+      const cost = this._getPlayerUpgradeCost(config);
+      if (cost === Infinity) continue;
+      if (!cheapest || cost < cheapest.cost) {
+        const level = this._playerUpgrades[config.id];
+        const label = level === 0 ? config.name : `${config.name} Lv.${level + 1}`;
+        cheapest = { emoji: config.emoji, name: label, cost };
+      }
+    }
+
     return cheapest;
   }
 
@@ -423,6 +542,7 @@ export class GameLoop {
     egg.body.label = 'egg_auto';
     egg.mesh.position.z = 1.5;
     egg._autoAge = 0;
+    egg._stuckTimer = 0;
     this.renderer.scene.add(egg.mesh);
     this._autoEggs.push(egg);
   }
@@ -432,11 +552,24 @@ export class GameLoop {
     autoEgg.pegHits++;
     this.board.rippleFrom(peg);
 
+    const baseGold = peg.isGolden ? GOLDEN_PEG.GOLD_MULTIPLIER : 1;
+    const gold = baseGold * autoEgg.goldMultiplier;
+    this.score.collectGold(gold);
+
     const vol = AUTO_CHICKEN.AUDIO_VOLUME_SCALE;
     const normalizedY = this.board.getNormalizedY(peg.y);
     this.audio.pegHit(normalizedY, 1, vol);
 
     this.particles.emitPegSpark(peg.x, -peg.y);
+    this.particles.spawnFloatingGold(
+      peg.x, -peg.y + 20,
+      gold, 22,
+      peg.isGolden ? '#FFFF00' : '#AADDFF'
+    );
+
+    this.hud.setGold(this.score.totalGold);
+    const screenPos = this._pegHitScreenPos(peg);
+    this.hud.spawnFlyingCoin(screenPos.x, screenPos.y);
   }
 
   _handleAutoEggBinLand(bin, autoEgg) {
@@ -457,10 +590,7 @@ export class GameLoop {
     if (autoEgg.landed) return;
     autoEgg.landed = true;
 
-    const baseGold = Math.max(1, Math.ceil(autoEgg.pegHits * SCORING.BASE_GOLD));
-    const gold = baseGold * autoEgg.goldMultiplier;
-
-    this._fireAutoEggFountain(autoEgg, gold);
+    this._fireAutoEggFountain(autoEgg, 0);
   }
 
   _fireAutoEggFountain(autoEgg, gold) {
@@ -469,21 +599,23 @@ export class GameLoop {
 
     this.particles.emitHatchExplosion(ex, ey);
 
-    const screenPos = this.renderer.projectToScreen(ex, ey);
-    const numCoins = Math.min(Math.max(Math.ceil(Math.sqrt(gold)), 2), 12);
-    const goldPerCoin = Math.round(gold / numCoins);
+    if (gold > 0) {
+      const screenPos = this.renderer.projectToScreen(ex, ey);
+      const numCoins = Math.min(Math.max(Math.ceil(Math.sqrt(gold)), 2), 12);
+      const goldPerCoin = Math.round(gold / numCoins);
 
-    this.hud.spawnCoinFountain(
-      screenPos.x, screenPos.y,
-      numCoins, goldPerCoin,
-      (g) => {
-        this.score.collectGold(g);
-        this.hud.setGold(this.score.totalGold);
-        this._syncAllUpgradeRows();
-        this._updateGoalBar();
-      },
-      null
-    );
+      this.hud.spawnCoinFountain(
+        screenPos.x, screenPos.y,
+        numCoins, goldPerCoin,
+        (g) => {
+          this.score.collectGold(g);
+          this.hud.setGold(this.score.totalGold);
+          this._syncAllUpgradeRows();
+          this._updateGoalBar();
+        },
+        null
+      );
+    }
 
     setTimeout(() => {
       if (autoEgg.alive) {
@@ -492,6 +624,26 @@ export class GameLoop {
         if (idx !== -1) this._autoEggs.splice(idx, 1);
       }
     }, 150);
+  }
+
+  _checkAutoEggStuck(ae, delta) {
+    if (ae.landed) return;
+    const speed = ae.getSpeed();
+    const eggX = ae.getX();
+    const wallEdge = GAME.WIDTH / 2 - STUCK_WALL_MARGIN;
+
+    if (speed < STUCK_SPEED_THRESHOLD && Math.abs(eggX) > wallEdge) {
+      ae._stuckTimer += delta;
+    } else {
+      ae._stuckTimer = Math.max(0, ae._stuckTimer - delta * 2);
+    }
+
+    if (ae._stuckTimer >= STUCK_TIME_THRESHOLD) {
+      const nudgeDir = eggX > 0 ? -1 : 1;
+      this.physics.applyForce(ae.body, { x: nudgeDir * STUCK_NUDGE_FORCE, y: STUCK_NUDGE_UP });
+      this.particles.spawnFloatingText(eggX, -ae.getY(), 'BLAST OFF!', 36, '#FF4400');
+      ae._stuckTimer = 0;
+    }
   }
 
   purchaseDupliBounce() {
@@ -513,6 +665,7 @@ export class GameLoop {
     this.score.resetRun();
     this._idleDelay = TIMING.IDLE_PROMPT_DELAY;
     this.hud.hideRunGold();
+    this.board.clearGoldenPegs();
 
     if (this._hasPlayedRound) {
       this.camera.setTargetZoom(CAMERA.OVERVIEW_ZOOM);
@@ -554,7 +707,7 @@ export class GameLoop {
 
     this.chicken.warmup(
       [this.textures.chickenLay0, this.textures.chickenLay1],
-      CHICKEN.WARMUP_DURATION
+      CHICKEN.WARMUP_DURATION * this._getSpeedMult()
     );
     this.audio.chickenSqueeze();
     this.camera.setTargetZoom(CAMERA.WARMUP_ZOOM);
@@ -571,12 +724,35 @@ export class GameLoop {
     this.audio.chickenCluck();
     this.camera.shake(5.0);
 
-    const x = this.chicken.getDropX();
-    const y = this.chicken.getDropY();
-    this.egg = new Egg(x, y, this.physics, this.textures.egg);
-    this.renderer.scene.add(this.egg.mesh);
+    const goldenLevel = this._playerUpgrades.golden_pegs;
+    if (goldenLevel > 0) {
+      const goldenConfig = PLAYER_UPGRADES.find(u => u.id === 'golden_pegs');
+      this.board.setGoldenPegs(goldenLevel * goldenConfig.effect);
+    }
 
-    this.particles.emitEggPop(x, -y);
+    const eggCount = 1 + this._playerUpgrades.multi_egg;
+    const bouncinessConfig = PLAYER_UPGRADES.find(u => u.id === 'bounciness');
+    const restitutionBonus = this._playerUpgrades.bounciness * bouncinessConfig.effect;
+
+    const baseX = this.chicken.getDropX();
+    const y = this.chicken.getDropY();
+    this._mainEggs = [];
+
+    for (let i = 0; i < eggCount; i++) {
+      const spread = eggCount > 1 ? (i - (eggCount - 1) / 2) * 15 : 0;
+      const egg = new Egg(baseX + spread, y, this.physics, this.textures.egg, false, {
+        restitutionBonus,
+      });
+      this.renderer.scene.add(egg.mesh);
+      this._mainEggs.push(egg);
+    }
+
+    this.egg = this._mainEggs[0];
+
+    for (let i = 1; i < this._mainEggs.length; i++) {
+      this.particles.emitEggPop(this._mainEggs[i].getX(), -y);
+    }
+    this.particles.emitEggPop(baseX, -y);
 
     this.camera.setTargetZoom(CAMERA.DROP_ZOOM_START);
   }
@@ -591,7 +767,13 @@ export class GameLoop {
     this._landingGold += this._bonusGold;
     this._cleanupDuplicates();
 
-    this.physics.setStatic(this.egg.body, true);
+    for (const e of this._mainEggs) {
+      if (e !== this.egg && e.alive) e.destroy(this.renderer.scene);
+    }
+
+    if (this.egg && this.egg.alive) {
+      this.physics.setStatic(this.egg.body, true);
+    }
     this.camera.setTargetZoom(CAMERA.HATCH_ZOOM);
   }
 
@@ -599,22 +781,25 @@ export class GameLoop {
     this.state = STATES.TRANSITION;
     this._stateTimer = 0;
     this._hasPlayedRound = true;
+    this._roundCount++;
 
     this._dupliBounceInFlight = false;
     this._bonusGold = 0;
     this._cleanupDuplicates();
+    this.board.clearGoldenPegs();
 
     if (this.egg) {
       this.egg.destroy(this.renderer.scene);
       this.egg = null;
     }
+    this._mainEggs = [];
 
     this.audio.whoosh();
     this.chicken.celebrate();
 
     this.camera.transitionTo(
       0, CAMERA.OVERVIEW_CENTER_Y,
-      CAMERA.OVERVIEW_ZOOM, TIMING.TRANSITION_DURATION,
+      CAMERA.OVERVIEW_ZOOM, TIMING.TRANSITION_DURATION * this._getSpeedMult(),
       () => { this._enterIdle(); }
     );
   }
@@ -638,6 +823,7 @@ export class GameLoop {
       if (ae.landed) continue;
       ae._autoAge += delta;
       ae.update();
+      this._checkAutoEggStuck(ae, delta);
       if (ae._autoAge > 20) {
         this._handleAutoEggFloorLand(ae);
       }
@@ -688,75 +874,85 @@ export class GameLoop {
 
   _updateWarmup(delta) {
     this._stateTimer += delta;
+    const warmupDur = CHICKEN.WARMUP_DURATION * this._getSpeedMult();
 
     this.camera.followX(this.chicken.getX());
     this.camera.followY(CHICKEN.Y_POS);
 
-    const t = Math.min(this._stateTimer / CHICKEN.WARMUP_DURATION, 1);
+    const t = Math.min(this._stateTimer / warmupDur, 1);
     this.camera.shake(t * t * 0.8);
 
-    if (this._stateTimer >= CHICKEN.WARMUP_DURATION) {
+    if (this._stateTimer >= warmupDur) {
       this._enterDrop();
     }
   }
 
   _updateDrop(delta) {
-    if (!this.egg || !this.egg.alive) return;
+    const primaryEgg = this._mainEggs[0];
+    if (!primaryEgg || !primaryEgg.alive) return;
 
     this._stateTimer += delta;
-    if (this._stateTimer > 20 && !this.egg.landed) {
-      this._handleFloorLand();
+    if (this._stateTimer > 20) {
+      for (const e of this._mainEggs) {
+        if (!e.landed) this._handleFloorLand(e);
+      }
       return;
     }
 
-    this.egg.update();
+    for (const e of this._mainEggs) {
+      if (e.alive) e.update();
+    }
 
     for (const dupe of this._duplicateEggs) {
       if (dupe.alive) dupe.update();
     }
 
-    this.camera.followX(this.egg.getX());
-    this.camera.followY(this.egg.getY());
+    this.camera.followX(primaryEgg.getX());
+    this.camera.followY(primaryEgg.getY());
 
-    const eggY = this.egg.getY();
+    const eggY = primaryEgg.getY();
     const progress = Math.max(0, Math.min(1,
       (eggY - CAMERA.BOARD_TOP_Y) / (CAMERA.BOARD_BOTTOM_Y - CAMERA.BOARD_TOP_Y)
     ));
     const positionZoom = CAMERA.DROP_ZOOM_MAX + (CAMERA.DROP_ZOOM_MIN - CAMERA.DROP_ZOOM_MAX) * progress;
 
-    const speed = this.egg.getSpeed();
+    const speed = primaryEgg.getSpeed();
     const speedZoom = CAMERA.DROP_ZOOM_MAX - speed * CAMERA.SPEED_ZOOM_FACTOR;
     const clampedSpeedZoom = Math.max(CAMERA.DROP_ZOOM_MIN, Math.min(CAMERA.DROP_ZOOM_MAX, speedZoom));
 
     this.camera.setTargetZoom(Math.min(positionZoom, clampedSpeedZoom));
 
-    const velX = this.egg.getVelX();
-    const velY = this.egg.getVelY();
-    const mag = Math.sqrt(velX * velX + velY * velY);
-    if (mag > 1) {
-      const stretchFactor = Math.min(mag * 0.03, 0.3);
-      const angle = Math.atan2(Math.abs(velY), Math.abs(velX));
-      const verticalness = angle / (Math.PI / 2);
-      this.egg.setSquash(
-        1 - stretchFactor * (1 - verticalness) + stretchFactor * verticalness * 0.3,
-        1 + stretchFactor * verticalness - stretchFactor * (1 - verticalness) * 0.3
-      );
-    } else {
-      this.egg.setSquash(1, 1);
+    for (const e of this._mainEggs) {
+      if (!e.alive || e.landed) continue;
+      const velX = e.getVelX();
+      const velY = e.getVelY();
+      const mag = Math.sqrt(velX * velX + velY * velY);
+      if (mag > 1) {
+        const stretchFactor = Math.min(mag * 0.03, 0.3);
+        const angle = Math.atan2(Math.abs(velY), Math.abs(velX));
+        const verticalness = angle / (Math.PI / 2);
+        e.setSquash(
+          1 - stretchFactor * (1 - verticalness) + stretchFactor * verticalness * 0.3,
+          1 + stretchFactor * verticalness - stretchFactor * (1 - verticalness) * 0.3
+        );
+      } else {
+        e.setSquash(1, 1);
+      }
     }
 
     if (speed > 1.5) {
-      this.particles.emitTrail(this.egg.getX(), this.egg.body.position.y, speed);
+      this.particles.emitTrail(primaryEgg.getX(), primaryEgg.body.position.y, speed);
     }
 
     this._checkStuck(delta);
   }
 
   _checkStuck(delta) {
-    if (!this.egg || this.egg.landed) return;
+    const primaryEgg = this._mainEggs[0];
+    if (!primaryEgg || primaryEgg.landed) return;
 
-    const speed = this.egg.getSpeed();
-    const eggX = this.egg.getX();
+    const speed = primaryEgg.getSpeed();
+    const eggX = primaryEgg.getX();
     const wallEdge = GAME.WIDTH / 2 - STUCK_WALL_MARGIN;
 
     if (speed < STUCK_SPEED_THRESHOLD && Math.abs(eggX) > wallEdge) {
@@ -766,9 +962,13 @@ export class GameLoop {
     }
 
     if (this._stuckTimer >= STUCK_TIME_THRESHOLD) {
-      const nudgeDir = eggX > 0 ? -1 : 1;
-      this.physics.applyForce(this.egg.body, { x: nudgeDir * STUCK_NUDGE_FORCE, y: STUCK_NUDGE_UP });
-      this.particles.spawnFloatingText(eggX, -this.egg.getY(), 'BLAST OFF!', 48, '#FF4400');
+      for (const e of this._mainEggs) {
+        if (e.landed) continue;
+        const ex = e.getX();
+        const nudgeDir = ex > 0 ? -1 : 1;
+        this.physics.applyForce(e.body, { x: nudgeDir * STUCK_NUDGE_FORCE, y: STUCK_NUDGE_UP });
+      }
+      this.particles.spawnFloatingText(eggX, -primaryEgg.getY(), 'BLAST OFF!', 48, '#FF4400');
       this._stuckTimer = 0;
     }
   }
@@ -780,7 +980,6 @@ export class GameLoop {
 
     if (this._freezeTimer > 0) {
       this._freezeTimer -= delta;
-
       if (this.egg) {
         this.camera.followX(this.egg.getX());
         this.camera.followY(this.egg.getY());
@@ -807,14 +1006,17 @@ export class GameLoop {
 
   _updateHatch(delta) {
     this._stateTimer += delta;
+    const sm = this._getSpeedMult();
+    const wobbleDur = TIMING.WOBBLE_DURATION * sm;
+    const crackDur = TIMING.CRACK_DURATION * sm;
 
     if (this.egg) {
       this.camera.followX(this.egg.getX());
       this.camera.followY(this.egg.getY());
     }
 
-    if (this._stateTimer < TIMING.WOBBLE_DURATION) {
-      const rawIntensity = this._stateTimer / TIMING.WOBBLE_DURATION;
+    if (this._stateTimer < wobbleDur) {
+      const rawIntensity = this._stateTimer / wobbleDur;
       const intensity = rawIntensity * rawIntensity;
 
       this._wobblePhase += delta * (20 + intensity * 30);
@@ -832,13 +1034,13 @@ export class GameLoop {
         this._drumrollTimer = drumInterval;
       }
 
-    } else if (this._stateTimer < TIMING.WOBBLE_DURATION + TIMING.CRACK_DURATION) {
+    } else if (this._stateTimer < wobbleDur + crackDur) {
       if (this.egg && this.egg._crackLines.length === 0) {
         this.egg.showCracks();
       }
       this.camera.shake(CAMERA.HATCH_SHAKE_MAX * 0.8);
 
-    } else if (this._stateTimer >= TIMING.WOBBLE_DURATION + TIMING.CRACK_DURATION) {
+    } else if (this._stateTimer >= wobbleDur + crackDur) {
       if (this.egg && !this._coinFountainActive) {
         const ex = this.egg.getX();
         const ey = -this.egg.getY();
@@ -859,15 +1061,25 @@ export class GameLoop {
     }
 
     if (this._coinFountainActive) {
-      const elapsed = this._stateTimer - (TIMING.WOBBLE_DURATION + TIMING.CRACK_DURATION);
+      const elapsed = this._stateTimer - (wobbleDur + crackDur);
       this.renderer.setBgBrightness(Math.max(0, 0.15 - elapsed * 0.2));
     }
   }
 
   _startCoinFountain(worldX, worldY) {
     this._coinFountainActive = true;
-    const screenPos = this.renderer.projectToScreen(worldX, worldY);
 
+    if (this._landingGold <= 0) {
+      this._coinFountainActive = false;
+      this.renderer.setBgBrightness(0);
+      this.hud.hideRunGold();
+      setTimeout(() => {
+        if (this.state === STATES.HATCH) this._enterTransition();
+      }, 300);
+      return;
+    }
+
+    const screenPos = this.renderer.projectToScreen(worldX, worldY);
     const numCoins = Math.min(Math.max(Math.ceil(Math.sqrt(this._landingGold)), 3), 20);
     const goldPerCoin = Math.round(this._landingGold / numCoins);
     let totalCollected = 0;
@@ -877,10 +1089,6 @@ export class GameLoop {
       numCoins, goldPerCoin,
       (gold, collected, total) => {
         totalCollected += gold;
-        const newTotal = Math.min(
-          this.score.totalGold + gold,
-          this.score.totalGold + this._landingGold - (totalCollected - gold)
-        );
         this.score.collectGold(gold);
         this.hud.setGold(this.score.totalGold);
         this.audio.coinCollect(collected, total);

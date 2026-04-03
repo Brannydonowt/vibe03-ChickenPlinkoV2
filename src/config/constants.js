@@ -1,7 +1,7 @@
 export const VERSION = {
   MAJOR: 1,
-  MINOR: 0,
-  BUILD: 1,
+  MINOR: 1,
+  BUILD: 0,
   toString() {
     return `v${this.MAJOR}.${this.MINOR} build ${this.BUILD}`;
   },
@@ -193,6 +193,45 @@ export const CHICKEN_TYPES = [
     particleColor: 0x9B59B6,
   },
 ];
+
+export const PLAYER_UPGRADES = [
+  {
+    id: 'bounciness',
+    name: 'Bouncy Egg',
+    emoji: '\u{1F3C0}',
+    description: 'Eggs bounce higher off pegs',
+    maxLevel: 5,
+    baseCost: 150,
+    costMult: 2.0,
+    effect: 0.04,
+  },
+  {
+    id: 'multi_egg',
+    name: 'Double Yolk',
+    emoji: '\u{1F95A}',
+    description: 'Lay extra eggs each drop',
+    maxLevel: 3,
+    baseCost: 500,
+    costMult: 3.0,
+    effect: 1,
+  },
+  {
+    id: 'golden_pegs',
+    name: 'Golden Pegs',
+    emoji: '\u{2B50}',
+    description: 'Random pegs give 5x gold',
+    maxLevel: 5,
+    baseCost: 300,
+    costMult: 2.2,
+    effect: 3,
+  },
+];
+
+export const GOLDEN_PEG = {
+  GOLD_MULTIPLIER: 5,
+  COLOR: 0xFFD700,
+  SCALE: 1.3,
+};
 
 export const COLORS = {
   PEG_DEFAULT: 0xE0E0E0,

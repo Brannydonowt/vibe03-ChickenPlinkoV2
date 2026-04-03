@@ -82,43 +82,44 @@
       flex-shrink: 0;
       filter: drop-shadow(0 1px 2px rgba(0,0,0,0.3));
     }
-    .gold-pill.punch {
-      transform: scale(1.2);
-    }
+    .gold-pill.punch { transform: scale(1.2); }
     .gold-pill.throb {
       transform: scale(1.35);
       box-shadow: 0 0 14px rgba(255,215,0,0.7);
     }
 
+    /* Upgrade Toggle Button */
     .upgrade-toggle {
       display: flex;
       align-items: center;
       justify-content: center;
-      width: 44px; height: 44px;
+      min-width: 120px;
+      height: 38px;
+      padding: 0 16px;
       background: rgba(0,0,0,0.45);
       backdrop-filter: blur(8px);
       -webkit-backdrop-filter: blur(8px);
       border: 1.5px solid rgba(255,215,0,0.45);
-      border-radius: 14px;
+      border-radius: 12px;
       cursor: pointer;
       pointer-events: auto;
       opacity: 0;
       transform: translateY(-6px);
       transition: opacity 0.35s ease, transform 0.35s ease, border-color 0.2s ease;
       visibility: hidden;
+      font-family: 'Lilita One', 'Impact', sans-serif;
+      font-size: 13px;
+      font-weight: 700;
+      color: #FFD700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
     }
     .upgrade-toggle.visible {
       opacity: 1;
       transform: translateY(0);
       visibility: visible;
     }
-    .upgrade-toggle:active {
-      transform: scale(0.92);
-    }
-    .upgrade-toggle img {
-      width: 22px; height: 22px;
-      filter: brightness(0) saturate(100%) invert(82%) sepia(60%) saturate(500%) hue-rotate(5deg) brightness(104%) contrast(104%);
-    }
+    .upgrade-toggle:active { transform: scale(0.92); }
     .upgrade-toggle.pulse {
       animation: toggle-pulse 0.5s ease-in-out 3;
     }
@@ -136,24 +137,24 @@
       50% { box-shadow: 0 0 16px rgba(255,215,0,0.6); }
     }
 
-    /* Goal Bar */
+    /* Goal Bar (Quest Style) */
     .goal-bar {
       display: flex;
       flex-direction: column;
-      gap: 4px;
-      background: rgba(0,0,0,0.45);
+      gap: 5px;
+      background: rgba(0,0,0,0.5);
       backdrop-filter: blur(8px);
       -webkit-backdrop-filter: blur(8px);
-      border: 1.5px solid rgba(255,215,0,0.3);
+      border: 1.5px solid rgba(255,215,0,0.25);
       border-radius: 14px;
-      padding: 8px 12px;
-      min-width: 180px;
-      max-width: 240px;
+      padding: 10px 14px;
+      min-width: 190px;
+      max-width: 250px;
       cursor: pointer;
       pointer-events: auto;
       opacity: 0;
       transform: translateY(-6px);
-      transition: opacity 0.35s ease, transform 0.35s ease;
+      transition: opacity 0.35s ease, transform 0.35s ease, border-color 0.3s ease;
       visibility: hidden;
     }
     .goal-bar.visible {
@@ -161,8 +162,21 @@
       transform: translateY(0);
       visibility: visible;
     }
-    .goal-bar:active {
-      transform: scale(0.97);
+    .goal-bar:active { transform: scale(0.97); }
+    .goal-bar.goal-ready {
+      border-color: rgba(255,215,0,0.7);
+      box-shadow: 0 0 12px rgba(255,215,0,0.3);
+    }
+    .goal-bar-mission {
+      font-family: 'Lilita One', 'Impact', sans-serif;
+      font-size: 13px;
+      color: rgba(255,255,255,0.55);
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+    .goal-ready .goal-bar-mission {
+      color: #4CAF50;
+      text-shadow: 0 0 8px rgba(76,175,80,0.4);
     }
     .goal-bar-track {
       width: 100%;
@@ -178,19 +192,11 @@
       border-radius: 4px;
       transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     }
-    .goal-bar-info {
-      display: flex;
-      align-items: center;
-      gap: 5px;
-    }
-    .goal-bar-emoji {
-      font-size: 14px;
-      line-height: 1;
-    }
-    .goal-bar-text {
-      font-size: 12px;
-      font-weight: 600;
-      color: rgba(255,255,255,0.75);
+    .goal-ready .goal-bar-fill { background: linear-gradient(90deg, #4CAF50, #66BB6A); }
+    .goal-bar-reward {
+      font-size: 13px;
+      font-weight: 700;
+      color: #fff;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -234,6 +240,17 @@
       transition: transform 0.4s cubic-bezier(0.2, 0.8, 0.3, 1);
     }
 
+    .flying-coin-mini {
+      position: absolute;
+      width: 14px; height: 14px;
+      background: radial-gradient(circle at 35% 35%, #FFE44D, #FFA500);
+      border-radius: 50%;
+      border: 1.5px solid #DAA520;
+      pointer-events: none;
+      z-index: 20;
+      box-shadow: 0 0 4px rgba(255,215,0,0.5);
+    }
+
     .run-gold-display {
       display: flex;
       align-items: center;
@@ -251,9 +268,7 @@
       opacity: 0;
       transition: opacity 0.3s ease, transform 0.15s ease;
     }
-    .run-gold-display.visible {
-      opacity: 1;
-    }
+    .run-gold-display.visible { opacity: 1; }
     .run-gold-display .run-coin-icon {
       width: 20px; height: 20px;
       flex-shrink: 0;
@@ -272,9 +287,7 @@
       opacity: 0;
       transition: opacity 0.2s ease, transform 0.2s ease;
     }
-    .combo-display.visible {
-      opacity: 1;
-    }
+    .combo-display.visible { opacity: 1; }
 
     .tap-prompt-container {
       position: absolute;
@@ -284,9 +297,7 @@
       opacity: 0;
       transition: opacity 0.5s ease;
     }
-    .tap-prompt-container.visible {
-      opacity: 1;
-    }
+    .tap-prompt-container.visible { opacity: 1; }
 
     .tap-prompt-text {
       position: absolute;
@@ -309,7 +320,6 @@
       animation: tap-text-pulse 1.6s ease-in-out infinite;
       z-index: 2;
     }
-
     @keyframes tap-text-pulse {
       0%, 100% { transform: translateX(-50%) scale(1); filter: brightness(1); }
       50% { transform: translateX(-50%) scale(1.06); filter: brightness(1.15); }
@@ -317,8 +327,7 @@
 
     .tap-icon-wrapper {
       position: absolute;
-      top: 56%;
-      left: 58%;
+      top: 56%; left: 58%;
       transform: translate(-10%, 0%);
       animation: tap-icon-bounce 1.4s ease-in-out infinite;
       z-index: 1;
@@ -328,7 +337,6 @@
       height: auto;
       filter: drop-shadow(0 4px 12px rgba(0,0,0,0.4));
     }
-
     @keyframes tap-icon-bounce {
       0%, 100% { transform: translate(-10%, 0%) scale(1); }
       50% { transform: translate(-10%, -4%) scale(1.02); }
@@ -363,10 +371,7 @@
       transform: translateY(-8px);
       transition: opacity 0.35s ease, transform 0.35s ease;
     }
-    .powerup-bar.visible {
-      opacity: 1;
-      transform: translateY(0);
-    }
+    .powerup-bar.visible { opacity: 1; transform: translateY(0); }
 
     .powerup-btn {
       display: flex;
@@ -388,33 +393,20 @@
       transition: transform 0.15s ease, border-color 0.25s ease,
                   box-shadow 0.25s ease, opacity 0.25s ease;
     }
-    .powerup-btn:active {
-      transform: scale(0.95);
-    }
-
+    .powerup-btn:active { transform: scale(0.95); }
     .powerup-icon {
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      display: flex; align-items: center; justify-content: center;
       width: 26px; height: 26px;
       background: rgba(255,215,0,0.2);
       border-radius: 50%;
-      font-size: 13px;
-      font-weight: 900;
+      font-size: 13px; font-weight: 900;
       color: #FFE680;
       flex-shrink: 0;
     }
-
-    .powerup-name {
-      white-space: nowrap;
-    }
-
+    .powerup-name { white-space: nowrap; }
     .powerup-cost {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-      opacity: 0.85;
-      font-size: 13px;
+      display: flex; align-items: center; gap: 4px;
+      opacity: 0.85; font-size: 13px;
     }
     .powerup-cost .mini-coin {
       width: 14px; height: 14px;
@@ -423,26 +415,17 @@
       border: 1.5px solid #DAA520;
       flex-shrink: 0;
     }
-
     .powerup-btn.disabled {
-      opacity: 0.35;
-      pointer-events: none;
-      border-color: rgba(255,255,255,0.15);
-      color: #aaa;
+      opacity: 0.35; pointer-events: none;
+      border-color: rgba(255,255,255,0.15); color: #aaa;
     }
-    .powerup-btn.disabled .powerup-icon {
-      background: rgba(255,255,255,0.08);
-      color: #999;
-    }
-
+    .powerup-btn.disabled .powerup-icon { background: rgba(255,255,255,0.08); color: #999; }
     .powerup-btn.active {
       border-color: #FFD700;
       box-shadow: 0 0 16px rgba(255,215,0,0.5), inset 0 0 8px rgba(255,215,0,0.15);
       animation: powerup-glow 1.2s ease-in-out infinite;
     }
-    .powerup-btn.active .powerup-name {
-      color: #fff;
-    }
+    .powerup-btn.active .powerup-name { color: #fff; }
     @keyframes powerup-glow {
       0%, 100% { box-shadow: 0 0 12px rgba(255,215,0,0.4), inset 0 0 6px rgba(255,215,0,0.1); }
       50% { box-shadow: 0 0 22px rgba(255,215,0,0.7), inset 0 0 10px rgba(255,215,0,0.2); }
@@ -459,17 +442,14 @@
       transition: opacity 0.3s ease;
       z-index: 30;
     }
-    .upgrade-backdrop.open {
-      opacity: 1;
-      pointer-events: auto;
-    }
+    .upgrade-backdrop.open { opacity: 1; pointer-events: auto; }
 
     /* Upgrade Panel (slide-up sheet) */
     .upgrade-panel {
       position: absolute;
       bottom: 0; left: 0;
       width: 100%;
-      max-height: 65%;
+      max-height: 70%;
       background: rgba(18,18,30,0.92);
       backdrop-filter: blur(16px);
       -webkit-backdrop-filter: blur(16px);
@@ -483,17 +463,13 @@
       flex-direction: column;
       overflow: hidden;
     }
-    .upgrade-panel.open {
-      transform: translateY(0);
-      pointer-events: auto;
-    }
+    .upgrade-panel.open { transform: translateY(0); pointer-events: auto; }
 
     .upgrade-panel-header {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 14px 18px 10px;
-      border-bottom: 1px solid rgba(255,255,255,0.08);
+      padding: 14px 18px 0;
       flex-shrink: 0;
     }
     .upgrade-panel-title {
@@ -503,31 +479,60 @@
       letter-spacing: 1px;
     }
     .upgrade-panel-close {
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      display: flex; align-items: center; justify-content: center;
       width: 36px; height: 36px;
       background: rgba(255,255,255,0.08);
-      border: none;
-      border-radius: 50%;
-      cursor: pointer;
-      pointer-events: auto;
+      border: none; border-radius: 50%;
+      cursor: pointer; pointer-events: auto;
       transition: background 0.2s ease;
     }
-    .upgrade-panel-close:active {
-      background: rgba(255,255,255,0.18);
-    }
+    .upgrade-panel-close:active { background: rgba(255,255,255,0.18); }
     .upgrade-panel-close img {
       width: 16px; height: 16px;
       filter: brightness(0) invert(1);
       opacity: 0.7;
     }
 
-    .upgrade-panel-list {
-      padding: 10px 14px 20px;
+    /* Tabs */
+    .upgrade-tabs {
+      display: flex;
+      gap: 0;
+      padding: 10px 18px 0;
+      flex-shrink: 0;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+    .upgrade-tab-btn {
+      flex: 1;
+      padding: 8px 0 10px;
+      background: none;
+      border: none;
+      border-bottom: 3px solid transparent;
+      color: rgba(255,255,255,0.4);
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      cursor: pointer;
+      pointer-events: auto;
+      transition: color 0.2s ease, border-color 0.2s ease;
+      text-transform: uppercase;
+    }
+    .upgrade-tab-btn.active {
+      color: #FFD700;
+      border-bottom-color: #FFD700;
+    }
+    .upgrade-tab-btn:not(.active):hover {
+      color: rgba(255,255,255,0.6);
+    }
+
+    .upgrade-panel-body {
+      flex: 1;
       overflow-y: auto;
       -webkit-overflow-scrolling: touch;
-      flex: 1;
+    }
+
+    .upgrade-panel-list {
+      padding: 10px 14px 20px;
       display: flex;
       flex-direction: column;
       gap: 10px;
@@ -543,130 +548,73 @@
       padding: 12px;
       transition: border-color 0.2s ease;
     }
-
     .upgrade-item-icon {
       width: 44px; height: 44px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      display: flex; align-items: center; justify-content: center;
       background: rgba(255,215,0,0.12);
       border-radius: 12px;
       font-size: 24px;
       flex-shrink: 0;
     }
-
     .upgrade-item-info {
-      flex: 1;
-      min-width: 0;
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
+      flex: 1; min-width: 0;
+      display: flex; flex-direction: column; gap: 2px;
     }
     .upgrade-item-name {
-      font-size: 15px;
-      font-weight: 700;
-      color: #fff;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
+      font-size: 15px; font-weight: 700; color: #fff;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
     .upgrade-item-desc {
-      font-size: 12px;
-      color: rgba(255,255,255,0.5);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
+      font-size: 12px; color: rgba(255,255,255,0.5);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
     .upgrade-item-level {
-      font-size: 11px;
-      color: rgba(255,215,0,0.7);
-      font-weight: 600;
+      font-size: 11px; color: rgba(255,215,0,0.7); font-weight: 600;
     }
-    .upgrade-item-level:empty {
-      display: none;
-    }
-
-    .upgrade-item-count {
-      font-size: 11px;
-      color: rgba(255,215,0,0.7);
-      font-weight: 600;
-    }
+    .upgrade-item-level:empty { display: none; }
 
     .upgrade-item-buy {
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      display: flex; align-items: center; justify-content: center;
       gap: 6px;
-      min-width: 88px;
-      height: 40px;
+      min-width: 88px; height: 40px;
       background: #4CAF50;
-      border: none;
-      border-radius: 12px;
+      border: none; border-radius: 12px;
       padding: 0 14px;
       color: #fff;
-      font-family: inherit;
-      font-size: 15px;
-      font-weight: 700;
-      cursor: pointer;
-      pointer-events: auto;
-      flex-shrink: 0;
+      font-family: inherit; font-size: 15px; font-weight: 700;
+      cursor: pointer; pointer-events: auto; flex-shrink: 0;
       transition: background 0.2s ease, transform 0.12s ease, opacity 0.2s ease;
     }
-    .upgrade-item-buy:active {
-      transform: scale(0.95);
-    }
+    .upgrade-item-buy:active { transform: scale(0.95); }
     .upgrade-item-buy .buy-coin {
-      width: 18px; height: 18px;
-      flex-shrink: 0;
+      width: 18px; height: 18px; flex-shrink: 0;
       filter: drop-shadow(0 1px 1px rgba(0,0,0,0.3));
     }
     .upgrade-item-buy.cannot-afford {
-      background: #555;
-      color: #999;
-      cursor: default;
+      background: #555; color: #999; cursor: default;
     }
-    .upgrade-item-buy.cannot-afford .buy-coin {
-      opacity: 0.5;
-    }
-
-    .upgrade-item.coming-soon {
-      opacity: 0.4;
-      pointer-events: none;
-    }
-    .upgrade-item.coming-soon .upgrade-item-icon {
-      background: rgba(255,255,255,0.06);
-      color: rgba(255,255,255,0.3);
-      font-weight: 700;
-    }
+    .upgrade-item-buy.cannot-afford .buy-coin { opacity: 0.5; }
     .upgrade-item-buy.locked {
       background: rgba(255,255,255,0.08);
       color: rgba(255,255,255,0.35);
-      cursor: default;
-      pointer-events: none;
-      min-width: 72px;
-      font-size: 13px;
+      cursor: default; pointer-events: none;
+      min-width: 72px; font-size: 13px;
     }
 
-    /* Subtle tap prompt (post-FTUE overview mode) */
+    /* Subtle tap prompt */
     .tap-prompt-subtle {
       position: absolute;
-      bottom: 18%;
-      left: 50%;
+      bottom: 18%; left: 50%;
       transform: translateX(-50%);
-      display: flex;
-      align-items: center;
-      gap: 8px;
+      display: flex; align-items: center; gap: 8px;
       opacity: 0;
       transition: opacity 0.6s ease;
       pointer-events: none;
       animation: subtle-bob 2.4s ease-in-out infinite;
     }
-    .tap-prompt-subtle.visible {
-      opacity: 0.7;
-    }
+    .tap-prompt-subtle.visible { opacity: 0.7; }
     .tap-prompt-subtle img {
-      width: 40px;
-      height: auto;
+      width: 40px; height: auto;
       filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
     }
     .tap-prompt-subtle span {
@@ -691,17 +639,13 @@
         <img class="coin-icon" src="sprites/icons/Coin.svg" alt="" />
         <span id="gold-count">0</span>
       </div>
-      <button class="upgrade-toggle" id="upgrade-toggle">
-        <img src="sprites/icons/Arrow 2 Up.svg" alt="Upgrades" />
-      </button>
+      <button class="upgrade-toggle" id="upgrade-toggle">UPGRADES</button>
       <div class="goal-bar" id="goal-bar">
+        <div class="goal-bar-mission" id="goal-bar-mission">Save up 250g</div>
         <div class="goal-bar-track">
           <div class="goal-bar-fill" id="goal-bar-fill"></div>
         </div>
-        <div class="goal-bar-info">
-          <span class="goal-bar-emoji" id="goal-bar-emoji"></span>
-          <span class="goal-bar-text" id="goal-bar-text"></span>
-        </div>
+        <div class="goal-bar-reward" id="goal-bar-reward"></div>
         <div class="goal-bar-progress" id="goal-bar-progress"></div>
       </div>
     </div>
@@ -738,7 +682,13 @@
           <img src="sprites/icons/X Button.svg" alt="Close" />
         </button>
       </div>
-      <div class="upgrade-panel-list" id="upgrade-list">
+      <div class="upgrade-tabs">
+        <button class="upgrade-tab-btn active" id="tab-btn-player">Your Chicken</button>
+        <button class="upgrade-tab-btn" id="tab-btn-auto">Auto Chickens</button>
+      </div>
+      <div class="upgrade-panel-body">
+        <div class="upgrade-panel-list" id="upgrade-tab-player"></div>
+        <div class="upgrade-panel-list" id="upgrade-tab-auto" style="display:none"></div>
       </div>
     </div>
     <div class="screen-flash" id="screen-flash"></div>

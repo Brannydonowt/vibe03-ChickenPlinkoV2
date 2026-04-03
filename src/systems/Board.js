@@ -152,6 +152,22 @@ export class Board {
     for (const bin of this.bins) bin.update(delta);
   }
 
+  setGoldenPegs(count) {
+    this.clearGoldenPegs();
+    if (count <= 0) return;
+    const shuffled = [...this.pegs].sort(() => Math.random() - 0.5);
+    const toGild = Math.min(count, shuffled.length);
+    for (let i = 0; i < toGild; i++) {
+      shuffled[i].setGolden(true);
+    }
+  }
+
+  clearGoldenPegs() {
+    for (const peg of this.pegs) {
+      if (peg.isGolden) peg.setGolden(false);
+    }
+  }
+
   getBoardBottom() {
     return this.boardBottom;
   }

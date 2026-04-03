@@ -51,6 +51,12 @@ export class ParticleSystem {
     scene.add(this.points);
 
     this._floatingTexts = [];
+
+    this._coinImg = null;
+    this._coinImgReady = false;
+    const img = new Image();
+    img.onload = () => { this._coinImg = img; this._coinImgReady = true; };
+    img.src = 'sprites/icons/Coin.svg';
   }
 
   emit(x, y, count, config = {}) {
@@ -187,6 +193,58 @@ export class ParticleSystem {
       angle: -Math.PI / 2,
       gravity: -20,
       drag: 0.93,
+    });
+  }
+
+  spawnFloatingGold(x, y, amount, size, color) {
+    const canvas = document.createElement('canvas');
+    const pixelScale = 2;
+    canvas.width = 256 * pixelScale;
+    canvas.height = 96 * pixelScale;
+    const ctx = canvas.getContext('2d');
+    ctx.scale(pixelScale, pixelScale);
+
+    const iconSize = size * 0.85;
+    const text = `${amount}`;
+    ctx.font = `bold ${size}px "Arial Black", sans-serif`;
+    const textWidth = ctx.measureText(text).width;
+    const totalWidth = iconSize + 4 + textWidth;
+    const startX = 128 - totalWidth / 2;
+
+    if (this._coinImgReady) {
+      ctx.drawImage(this._coinImg, startX, 48 - iconSize / 2, iconSize, iconSize);
+    } else {
+      ctx.fillStyle = '#FFD700';
+      ctx.beginPath();
+      ctx.arc(startX + iconSize / 2, 48, iconSize / 2, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    const textX = startX + iconSize + 4;
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    ctx.strokeStyle = '#000';
+    ctx.lineWidth = 4;
+    ctx.lineJoin = 'round';
+    ctx.strokeText(text, textX, 48);
+    ctx.fillStyle = color || '#fff';
+    ctx.fillText(text, textX, 48);
+
+    const tex = new THREE.CanvasTexture(canvas);
+    const geo = new THREE.PlaneGeometry(128, 48);
+    const mat = new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false });
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.position.set(x, y, 10);
+    mesh.renderOrder = 200;
+    this.scene.add(mesh);
+
+    this._floatingTexts.push({
+      mesh,
+      vy: 50,
+      life: 0.9,
+      maxLife: 0.9,
+      scale: 1.5,
+      targetScale: 1.0,
     });
   }
 

@@ -13,7 +13,8 @@ export class Egg {
     this.landedBin = null;
 
     const radius = isDuplicate ? EGG.RADIUS * POWERUP.DUPLICATE_RADIUS_SCALE : EGG.RADIUS;
-    const restitution = isDuplicate ? POWERUP.DUPLICATE_RESTITUTION : EGG.RESTITUTION;
+    const baseRestitution = isDuplicate ? POWERUP.DUPLICATE_RESTITUTION : EGG.RESTITUTION;
+    const restitution = Math.min(baseRestitution + (eggConfig?.restitutionBonus || 0), 1.0);
 
     this.body = physics.createCircle(x, -y, radius, {
       restitution,

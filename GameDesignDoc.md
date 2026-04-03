@@ -4,7 +4,7 @@
 **Genre:** Hyper-Casual / Idle Plinko
 **Platform:** Mobile Web (portrait-first), deployed via GitHub Pages
 **Tech Stack:** JavaScript (ES Modules), Three.js (rendering), Matter.js (physics), Web Audio API, Vite 6
-**Status:** Playable core loop with idle progression systems
+**Status:** Playable core loop with idle progression and player upgrade systems
 
 ---
 
@@ -64,7 +64,7 @@ IDLE → WARMUP → DROP → LAND → HATCH → TRANSITION → IDLE
 - Vertical boundaries on both sides, thickness 10 units, semi-transparent brown
 
 ### Floor
-- Below bins; eggs missing all bins land on the floor (multiplier treated as ×1)
+- Below bins; eggs missing all bins land on the floor (no landing bonus — only bounce gold is kept)
 
 ---
 
@@ -84,25 +84,32 @@ IDLE → WARMUP → DROP → LAND → HATCH → TRANSITION → IDLE
 | Wall Friction | 0.02 |
 
 - Fixed-timestep substep loop (16ms steps, max 50ms per frame)
-- **Stuck detection:** If egg speed < 0.5 near side walls for 2 seconds, a nudge force is applied with a "BLAST OFF!" floating text
+- **Stuck detection:** If egg speed < 0.5 near side walls for 2 seconds, a nudge force is applied with a "BLAST OFF!" floating text. Applies to both manual and auto eggs.
 
 ---
 
-## 5. Scoring System — Gold-Direct Economy
+## 5. Scoring System — Immediate Gold Economy
 
-Every peg bounce directly awards gold. There is no intermediate "points" currency.
+Every peg bounce **immediately** awards gold to the player's total. Bins then award a **multiplier bonus** on landing.
 
-### Peg Hit Gold
+### Peg Hit Gold (Immediate)
 - **Base gold per hit:** 1
 - **Combo system:** Rapid successive peg hits within a **400ms window** increase the combo counter (max **×10**)
 - Gold per hit = `BASE_GOLD (1) × combo_multiplier`
-- All peg hit gold accumulates into the **run gold** total
-- Floating text shows `+Xg` on each peg hit, so players immediately see bounces = gold
+- Gold is **added to totalGold immediately** on each peg hit
+- `currentRunGold` tracks the run total for the bin bonus calculation
+- Floating text shows a **coin icon + number** on each peg hit
+- A **flying coin** animates from the peg hit toward the gold HUD counter on every bounce
 
-### Landing Payout
-- **Gold earned** = `ceil(runGold × binMultiplier)`
-- Floor landing uses multiplier of **1**
-- Gold is the sole currency
+### Landing Bonus
+- **Bin landing bonus** = `ceil(runGold × binMultiplier)` — paid via coin fountain at hatch
+- **Floor landing bonus** = 0 (you keep only what you bounced — floor is a real punishment)
+- This means bins multiply your bounce earnings and give it as extra: a x1 bin doubles your earnings, x10 gives 10x bonus on top
+
+### Golden Pegs
+- When the **Golden Pegs** upgrade is purchased, random pegs glow gold at the start of each drop
+- Golden pegs give **5x** the normal bounce gold when hit
+- Number of golden pegs = upgrade level × 3
 
 ### Combo Feedback
 - Combo counter displayed on HUD during drops
@@ -118,22 +125,49 @@ Every peg bounce directly awards gold. There is no intermediate "points" currenc
 ### Gold Sources
 | Source | Formula |
 |--------|---------|
-| Manual egg drop | `ceil(runGold × binMultiplier)` |
-| Auto-chicken egg | `max(1, ceil(pegHits × 1 × binMultiplier)) × goldMultiplier` |
+| Peg hit (immediate) | `BASE_GOLD × combo` (granted instantly to totalGold) |
+| Manual egg bin landing (bonus) | `ceil(runGold × binMultiplier)` |
+| Manual egg floor landing (bonus) | 0 (bounce gold already granted) |
+| Auto-chicken egg bin | `max(1, ceil(pegHits × binMultiplier)) × goldMultiplier` |
+| Auto-chicken peg hits | `goldMultiplier` per hit (immediate) |
 | Duplicate egg (Dupli-Bounce) | Same as manual, added as bonus gold |
 
 ### Gold Sinks
 | Sink | Cost |
 |------|------|
-| Dupli-Bounce power-up | 1,000 gold |
+| Bouncy Egg upgrade | 150g base, ×2.0 per level (5 levels) |
+| Double Yolk upgrade | 500g base, ×3.0 per level (3 levels) |
+| Golden Pegs upgrade | 300g base, ×2.2 per level (5 levels) |
 | Normal Chicken (purchase) | 250 gold |
 | Rainbow Chicken (purchase) | 2,000 gold |
 | Cosmic Chicken (purchase) | 10,000 gold |
 | Chicken level upgrades | Escalating (see Progression) |
+| Dupli-Bounce power-up | 1,000 gold |
 
 ---
 
-## 7. Progression — Auto-Chicken System
+## 7. Progression — Player Upgrades
+
+Three upgrades for the player's own chicken, accessible via the "Your Chicken" tab in the upgrade panel.
+
+| Upgrade | Emoji | Max Level | Base Cost | Cost Mult | Effect |
+|---------|-------|-----------|-----------|-----------|--------|
+| **Bouncy Egg** | 🏀 | 5 | 150g | ×2.0 | +0.04 egg restitution per level |
+| **Double Yolk** | 🥚 | 3 | 500g | ×3.0 | +1 extra egg per manual drop |
+| **Golden Pegs** | ⭐ | 5 | 300g | ×2.2 | +3 golden pegs per level (5× gold on hit) |
+
+### Bouncy Egg
+Increases the egg's restitution (bounciness). More bouncing = more peg hits = more gold per drop. Restitution capped at 1.0.
+
+### Double Yolk (Multi-Egg)
+Spawns additional eggs on manual lay, each at a slightly offset X position (15px spread). All eggs contribute to `currentRunGold`. The game waits for all eggs to land, then hatches using the best bin (highest multiplier). Camera follows the primary egg.
+
+### Golden Pegs
+At the start of each manual drop, a random subset of pegs glow gold (×1.3 scale, gold color). When any egg hits a golden peg, the bounce gold is multiplied by 5. Pegs are re-randomized each drop and cleared on idle/transition.
+
+---
+
+## 8. Progression — Auto-Chicken System
 
 Three tiers of auto-laying chickens can be purchased and leveled up. They appear as smaller chickens (65% scale) at Y position 110, automatically laying eggs on a timer.
 
@@ -186,6 +220,8 @@ Three tiers of auto-laying chickens can be purchased and leveled up. They appear
 - Chickens unlock sequentially (next tier revealed after purchasing the previous one)
 - Auto eggs are labeled `egg_auto` in physics and use the chicken type's `goldMultiplier` and `eggTint`
 - Auto eggs that don't land within **20 seconds** are force-landed on the floor
+- Auto eggs have stuck detection with blast-off nudge (same as manual eggs)
+- Auto egg peg hits show floating gold icons and flying coins to the HUD
 - Each auto-chicken shows a countdown timer sprite above it
 - On purchase, the chicken immediately lays its first egg
 
@@ -277,34 +313,45 @@ Orthographic camera with smooth transitions between gameplay states:
 All UI is HTML/CSS DOM overlay (not rendered in Three.js canvas).
 
 ### HUD Elements
-- **Gold pill:** Persistent top-of-screen counter with coin SVG icon
-- **Run gold display:** Gold-themed counter (coin icon + value) shown during active drops, replacing the old "pts" score display. Ticks up with each peg hit so players see bounces = gold.
+- **Gold pill:** Persistent top-of-screen counter with coin SVG icon. Throbs when coins arrive.
+- **Flying coins:** Small 14px gold coins fly from peg hit positions to the gold pill on every bounce (manual, auto, dupe). Capped at 6 in-flight to avoid overwhelming the screen.
+- **Run gold display:** Gold-themed counter (coin icon + value) shown during active drops. Ticks up with each peg hit so players see bounces = gold.
+- **Floating gold icons:** Peg hits show a coin icon + number floating up (replaces old "+Xg" text). Golden pegs show yellow text.
 - **Combo counter:** Shows current combo multiplier during drops
 - **Tap prompt:** Large pulsating "LAY YOUR EGG!" for first-time users; subtle "Tap to lay!" icon after first round
 - **Edge glow:** CSS glow effect that intensifies with combo
 
-### Next Goal Progress Bar
-Persistent bar below the upgrade toggle in the top-left HUD. Answers "why am I collecting gold?"
-- Shows progress toward the cheapest available purchase or upgrade
-- Displays: progress fill bar, current gold / target cost, emoji + name of target
+### Quest Goal Bar
+Persistent mission-style card below the upgrade toggle. Answers "why am I collecting gold?"
+- **Mission text:** "Save up Xg" (or "READY!" when affordable, with green glow)
+- **Progress fill bar:** Gold gradient, turns green when goal reached
+- **Reward preview:** Emoji + name of target purchase/upgrade
+- **Gold counter:** Shows current / target
 - Tapping the bar opens the upgrade panel
 - Hidden during active drops; visible during idle after first round
-- Goal selection logic: scans chicken slots for cheapest available action (unpurchased chicken or level upgrade)
+- Goal selection logic: scans both player upgrades and chicken slots for the cheapest available action
 
-### Upgrade Panel
-- **Toggle button:** Arrow icon in top-left HUD (appears after first round)
-  - **Pulse animation:** Bounces 3 times after the very first round completes, drawing the player's eye
+### Upgrade Panel (Tabbed)
+- **Toggle button:** "UPGRADES" text button in top-left HUD (wider, 120px min-width)
+  - **Pulse animation:** Bounces 3 times after the very first round completes
   - **Can-afford glow:** Gold border + pulsing box-shadow when the player can afford any upgrade
-- **Slide-up sheet:** Lists available chicken types with:
+- **Two tabs:** "Your Chicken" (player upgrades) and "Auto Chickens" (chicken purchases/levels)
+  - Tab buttons with gold underline for active state
+  - Default tab: Your Chicken
+- **Slide-up sheet:** Lists upgrade items with:
   - Emoji + name + description
   - Current level indicator
-  - Buy/upgrade button with cost
+  - Buy/upgrade button with inline coin icon (SVG data URI) + cost
   - Affordability-based styling (greyed out when can't afford)
 - **Close button:** X icon
-- Rows unlock sequentially as chickens are purchased
+- Auto-chicken rows unlock sequentially as chickens are purchased
+- Coin icon uses inline SVG data URI to avoid Vite path issues
+
+### Animation Speed-up
+After the first 2 manual rounds, warmup/wobble/crack/transition durations are reduced by 40% (speed multiplier 0.6). This keeps the game from feeling repetitive on subsequent plays.
 
 ### Power-Up Bar
-- Dupli-Bounce button (currently hidden by default, visibility issue noted — to be revisited)
+- Dupli-Bounce button (currently hidden by default — to be revisited)
 
 ---
 

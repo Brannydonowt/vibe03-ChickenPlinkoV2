@@ -1,3 +1,5 @@
+const COIN_SVG_DATA_URI = `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="48" fill="#FFD700" stroke="#DAA520" stroke-width="4"/><circle cx="50" cy="50" r="36" fill="none" stroke="#DAA520" stroke-width="3"/><text x="50" y="62" text-anchor="middle" font-size="40" font-weight="bold" fill="#B8860B" font-family="Arial">$</text></svg>`)}`;
+
 export class HUD {
   constructor() {
     this._goldEl = document.getElementById('gold-count');
@@ -20,17 +22,25 @@ export class HUD {
     this._upgradeBackdrop = document.getElementById('upgrade-backdrop');
     this._upgradePanel = document.getElementById('upgrade-panel');
     this._upgradeClose = document.getElementById('upgrade-close');
-    this._upgradeList = document.getElementById('upgrade-list');
+    this._autoList = document.getElementById('upgrade-tab-auto');
+    this._playerList = document.getElementById('upgrade-tab-player');
+
+    this._tabBtnPlayer = document.getElementById('tab-btn-player');
+    this._tabBtnAuto = document.getElementById('tab-btn-auto');
 
     this._goalBar = document.getElementById('goal-bar');
     this._goalBarFill = document.getElementById('goal-bar-fill');
-    this._goalBarEmoji = document.getElementById('goal-bar-emoji');
-    this._goalBarText = document.getElementById('goal-bar-text');
+    this._goalBarMission = document.getElementById('goal-bar-mission');
+    this._goalBarReward = document.getElementById('goal-bar-reward');
     this._goalBarProgress = document.getElementById('goal-bar-progress');
 
     this._panelOpen = false;
+    this._activeTab = 'player';
     this._upgradeRows = {};
+    this._playerRows = {};
     this._upgradeCallback = null;
+    this._playerUpgradeCallback = null;
+    this._flyingCoinCount = 0;
 
     this._upgradeToggle.addEventListener('pointerdown', (e) => {
       e.stopPropagation();
@@ -49,6 +59,31 @@ export class HUD {
       e.stopPropagation();
       this.openUpgradePanel();
     });
+
+    this._tabBtnPlayer.addEventListener('pointerdown', (e) => {
+      e.stopPropagation();
+      this._switchTab('player');
+    });
+    this._tabBtnAuto.addEventListener('pointerdown', (e) => {
+      e.stopPropagation();
+      this._switchTab('auto');
+    });
+    this._switchTab('player');
+  }
+
+  _switchTab(tab) {
+    this._activeTab = tab;
+    if (tab === 'player') {
+      this._tabBtnPlayer.classList.add('active');
+      this._tabBtnAuto.classList.remove('active');
+      this._playerList.style.display = '';
+      this._autoList.style.display = 'none';
+    } else {
+      this._tabBtnAuto.classList.add('active');
+      this._tabBtnPlayer.classList.remove('active');
+      this._autoList.style.display = '';
+      this._playerList.style.display = 'none';
+    }
   }
 
   setGold(value) {
@@ -81,21 +116,10 @@ export class HUD {
     this._edgeGlow.style.opacity = Math.min(intensity, 1);
   }
 
-  showTapPrompt() {
-    this._tapPrompt.classList.add('visible');
-  }
-
-  hideTapPrompt() {
-    this._tapPrompt.classList.remove('visible');
-  }
-
-  showSubtleTapPrompt() {
-    this._subtleTapPrompt.classList.add('visible');
-  }
-
-  hideSubtleTapPrompt() {
-    this._subtleTapPrompt.classList.remove('visible');
-  }
+  showTapPrompt() { this._tapPrompt.classList.add('visible'); }
+  hideTapPrompt() { this._tapPrompt.classList.remove('visible'); }
+  showSubtleTapPrompt() { this._subtleTapPrompt.classList.add('visible'); }
+  hideSubtleTapPrompt() { this._subtleTapPrompt.classList.remove('visible'); }
 
   hideRunGold() {
     this._runGoldDisplay.classList.remove('visible');
@@ -103,15 +127,48 @@ export class HUD {
     this._edgeGlow.style.opacity = 0;
   }
 
-  /* --- Goal Bar --- */
+  /* --- Flying Coin (peg hit) --- */
 
-  showGoalBar() {
-    this._goalBar.classList.add('visible');
+  spawnFlyingCoin(screenX, screenY) {
+    if (this._flyingCoinCount >= 6) return;
+
+    const pillRect = this._goldPill.getBoundingClientRect();
+    const vpRect = this._viewport.getBoundingClientRect();
+    const targetX = pillRect.left + pillRect.width / 2 - vpRect.left;
+    const targetY = pillRect.top + pillRect.height / 2 - vpRect.top;
+
+    const el = document.createElement('div');
+    el.className = 'flying-coin-mini';
+    el.style.left = `${screenX - 7}px`;
+    el.style.top = `${screenY - 7}px`;
+    this._viewport.appendChild(el);
+    this._flyingCoinCount++;
+
+    const dx = targetX - screenX;
+    const dy = targetY - screenY;
+
+    requestAnimationFrame(() => {
+      const anim = el.animate([
+        { transform: 'translate(0, 0) scale(1)', opacity: 1 },
+        { transform: `translate(${dx}px, ${dy}px) scale(0.4)`, opacity: 0.7 },
+      ], {
+        duration: 250,
+        easing: 'ease-in',
+        fill: 'forwards',
+      });
+
+      anim.onfinish = () => {
+        el.remove();
+        this._flyingCoinCount--;
+        this.throbGold();
+      };
+    });
   }
 
-  hideGoalBar() {
-    this._goalBar.classList.remove('visible');
-  }
+  /* --- Goal Bar (Quest Style) --- */
+
+  showGoalBar() { this._goalBar.classList.add('visible'); }
+  hideGoalBar() { this._goalBar.classList.remove('visible'); }
 
   updateGoalBar({ emoji, name, current, target }) {
     if (!target || target === Infinity) {
@@ -119,13 +176,15 @@ export class HUD {
       return;
     }
 
-    this._goalBarEmoji.textContent = emoji;
-    this._goalBarText.textContent = name;
+    const canAfford = current >= target;
+    this._goalBarMission.textContent = canAfford ? 'READY!' : `Save up ${target}g`;
+    this._goalBarReward.textContent = `${emoji} ${name}`;
     this._goalBarProgress.textContent = `${current} / ${target}g`;
 
     const pct = Math.min(current / target, 1) * 100;
     this._goalBarFill.style.width = `${pct}%`;
 
+    this._goalBar.classList.toggle('goal-ready', canAfford);
     this.showGoalBar();
   }
 
@@ -145,28 +204,21 @@ export class HUD {
     this.updatePowerupAffordability(canAfford);
     this.setPowerupIdle();
   }
-
-  hidePowerupButton() {
-    this._powerupBar.classList.remove('visible');
-  }
+  hidePowerupButton() { this._powerupBar.classList.remove('visible'); }
 
   setPowerupActive() {
     this._powerupBtn.classList.remove('disabled');
     this._powerupBtn.classList.add('active');
     this._powerupNameEl.textContent = 'ACTIVE!';
   }
-
   setPowerupIdle() {
     this._powerupBtn.classList.remove('active');
     this._powerupNameEl.textContent = 'Dupli-Bounce!';
   }
 
   updatePowerupAffordability(canAfford) {
-    if (canAfford) {
-      this._powerupBtn.classList.remove('disabled');
-    } else {
-      this._powerupBtn.classList.add('disabled');
-    }
+    if (canAfford) this._powerupBtn.classList.remove('disabled');
+    else this._powerupBtn.classList.add('disabled');
   }
 
   onPowerupClick(callback) {
@@ -178,13 +230,8 @@ export class HUD {
 
   /* --- Upgrade Toggle & Panel --- */
 
-  showUpgradeToggle() {
-    this._upgradeToggle.classList.add('visible');
-  }
-
-  hideUpgradeToggle() {
-    this._upgradeToggle.classList.remove('visible');
-  }
+  showUpgradeToggle() { this._upgradeToggle.classList.add('visible'); }
+  hideUpgradeToggle() { this._upgradeToggle.classList.remove('visible'); }
 
   pulseUpgradeToggle() {
     this._upgradeToggle.classList.remove('pulse');
@@ -196,11 +243,8 @@ export class HUD {
   }
 
   setUpgradeToggleHighlight(on) {
-    if (on) {
-      this._upgradeToggle.classList.add('can-afford');
-    } else {
-      this._upgradeToggle.classList.remove('can-afford');
-    }
+    if (on) this._upgradeToggle.classList.add('can-afford');
+    else this._upgradeToggle.classList.remove('can-afford');
   }
 
   openUpgradePanel() {
@@ -217,12 +261,79 @@ export class HUD {
     this._upgradeBackdrop.classList.remove('open');
   }
 
-  isPanelOpen() {
-    return this._panelOpen;
+  isPanelOpen() { return this._panelOpen; }
+
+  /* --- Player Upgrade Rows --- */
+
+  initPlayerUpgradeRows(upgrades) {
+    this._playerList.innerHTML = '';
+    for (const u of upgrades) {
+      const row = document.createElement('div');
+      row.className = 'upgrade-item';
+      row.dataset.type = u.id;
+
+      row.innerHTML = `
+        <div class="upgrade-item-icon">${u.emoji}</div>
+        <div class="upgrade-item-info">
+          <span class="upgrade-item-name">${u.name}</span>
+          <span class="upgrade-item-desc">${u.description}</span>
+          <span class="upgrade-item-level"></span>
+        </div>
+        <button class="upgrade-item-buy" data-type="${u.id}">
+          <img class="buy-coin" src="${COIN_SVG_DATA_URI}" alt="" />
+          <span class="buy-price">${u.baseCost}</span>
+        </button>
+      `;
+
+      const btn = row.querySelector('.upgrade-item-buy');
+      btn.addEventListener('pointerdown', (e) => {
+        e.stopPropagation();
+        if (this._playerUpgradeCallback) this._playerUpgradeCallback(u.id);
+      });
+
+      this._playerList.appendChild(row);
+      this._playerRows[u.id] = {
+        row,
+        btn,
+        priceEl: row.querySelector('.buy-price'),
+        levelEl: row.querySelector('.upgrade-item-level'),
+      };
+    }
   }
 
+  updatePlayerUpgradeRow(id, state) {
+    const entry = this._playerRows[id];
+    if (!entry) return;
+
+    if (state.level >= state.maxLevel) {
+      entry.priceEl.textContent = 'MAX';
+      entry.btn.querySelector('.buy-coin').style.display = 'none';
+      entry.levelEl.textContent = `Lv.${state.level}`;
+      entry.btn.disabled = true;
+      entry.btn.classList.add('locked');
+    } else {
+      entry.priceEl.textContent = state.cost;
+      entry.btn.querySelector('.buy-coin').style.display = '';
+      entry.levelEl.textContent = state.level > 0 ? `Lv.${state.level}` : '';
+      entry.btn.disabled = false;
+      entry.btn.classList.remove('locked');
+    }
+
+    if (state.canAfford && !entry.btn.disabled) {
+      entry.btn.classList.remove('cannot-afford');
+    } else {
+      entry.btn.classList.add('cannot-afford');
+    }
+  }
+
+  onPlayerUpgradeRowClick(callback) {
+    this._playerUpgradeCallback = callback;
+  }
+
+  /* --- Auto Chicken Upgrade Rows --- */
+
   initUpgradeRows(chickenTypes) {
-    this._upgradeList.innerHTML = '';
+    this._autoList.innerHTML = '';
     for (const type of chickenTypes) {
       const row = document.createElement('div');
       row.className = 'upgrade-item';
@@ -237,7 +348,7 @@ export class HUD {
           <span class="upgrade-item-level"></span>
         </div>
         <button class="upgrade-item-buy" data-type="${type.id}">
-          <img class="buy-coin" src="sprites/icons/Coin.svg" alt="" />
+          <img class="buy-coin" src="${COIN_SVG_DATA_URI}" alt="" />
           <span class="buy-price">${type.baseCost}</span>
         </button>
       `;
@@ -248,7 +359,7 @@ export class HUD {
         if (this._upgradeCallback) this._upgradeCallback(type.id);
       });
 
-      this._upgradeList.appendChild(row);
+      this._autoList.appendChild(row);
       this._upgradeRows[type.id] = {
         row,
         btn,

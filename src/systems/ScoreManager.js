@@ -21,10 +21,11 @@ export class ScoreManager {
 
     const gold = SCORING.BASE_GOLD * this.combo;
     this.currentRunGold += gold;
+    this.totalGold += gold;
     return { gold, combo: this.combo };
   }
 
-  calculateLanding(binMultiplier) {
+  calculateLandingBonus(binMultiplier) {
     return Math.ceil(this.currentRunGold * binMultiplier);
   }
 
