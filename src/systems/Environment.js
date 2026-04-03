@@ -94,23 +94,6 @@ export class Environment {
   }
 
   _createGroundDetails() {
-    const tex = this.textures;
-    const groundY = -ENVIRONMENT.GROUND_Y;
-    const detailDefs = [
-      { key: 'grass01', x: -130, w: 30, h: 35, offsetY: 12 },
-      { key: 'bush01',  x: -60,  w: 40, h: 28, offsetY: 8 },
-      { key: 'hut01',   x: 20,   w: 55, h: 50, offsetY: 20 },
-      { key: 'grass01', x: 100,  w: 25, h: 30, offsetY: 10 },
-      { key: 'bush01',  x: 160,  w: 35, h: 25, offsetY: 7 },
-      { key: 'grass01', x: -170, w: 22, h: 26, offsetY: 8 },
-    ];
-
-    for (const def of detailDefs) {
-      const t = tex[def.key];
-      if (!t) continue;
-      const y = groundY + def.offsetY;
-      this._makeSprite(t, def.w, def.h, def.x, y, -0.5);
-    }
   }
 
   update(camera) {
