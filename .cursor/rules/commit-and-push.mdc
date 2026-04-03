@@ -35,3 +35,7 @@ git commit -m "Short summary line"
 ```
 
 Run `git add`, `git commit`, and `git push` as **separate sequential commands** (not chained with `&&`).
+
+## Version Bumping
+
+Before committing, also follow the **version-bump** rule (`.cursor/rules/version-bump.mdc`): increment `VERSION.BUILD` in `constants.js` on every commit, bump `MINOR` for new features, and include the version string in the commit message.
