@@ -51,6 +51,7 @@ export class GameLoop {
     this._duplicateEggs = [];
     this._bonusGold = 0;
     this._hasPlayedRound = false;
+    this._hasPulsedToggle = false;
 
     this._chickenSlots = CHICKEN_TYPES.map(type => ({
       config: type,
@@ -149,7 +150,7 @@ export class GameLoop {
     this.board.rippleFrom(peg);
 
     const now = performance.now();
-    const { points, combo } = this.score.onPegHit(now);
+    const { gold, combo } = this.score.onPegHit(now);
 
     const normalizedY = this.board.getNormalizedY(peg.y);
     this.audio.pegHit(normalizedY, combo);
@@ -163,11 +164,11 @@ export class GameLoop {
     const textColor = combo > 3 ? '#FF6B35' : combo > 1 ? '#FFD700' : '#FFFFFF';
     this.particles.spawnFloatingText(
       peg.x, -peg.y + 20,
-      `+${points}`,
+      `+${gold}g`,
       textSize, textColor
     );
 
-    this.hud.setScore(this.score.currentRunScore);
+    this.hud.setRunGold(this.score.currentRunGold);
     this.hud.setCombo(combo);
     this.hud.setEdgeGlow(combo / SCORING.COMBO_MAX);
   }
@@ -228,15 +229,15 @@ export class GameLoop {
     dupe.pegHits++;
     this.board.rippleFrom(peg);
 
-    this.score.currentRunScore += 1;
+    this.score.currentRunGold += 1;
 
     const normalizedY = this.board.getNormalizedY(peg.y);
     this.audio.pegHit(normalizedY, 1);
 
     this.particles.emitPegSpark(peg.x, -peg.y);
-    this.particles.spawnFloatingText(peg.x, -peg.y + 20, '+1', 22, '#DDDDDD');
+    this.particles.spawnFloatingText(peg.x, -peg.y + 20, '+1g', 22, '#DDDDDD');
 
-    this.hud.setScore(this.score.currentRunScore);
+    this.hud.setRunGold(this.score.currentRunGold);
   }
 
   _handleDupeBinLand(bin, dupe) {
@@ -348,16 +349,62 @@ export class GameLoop {
   }
 
   _syncAllUpgradeRows() {
+    let anyAffordable = false;
     for (const slot of this._chickenSlots) {
       const cost = this._getSlotCost(slot);
+      const canAfford = this.score.canAfford(cost);
+      if (canAfford && cost !== Infinity) anyAffordable = true;
+
+      const prev = this._chickenSlots[this._chickenSlots.indexOf(slot) - 1];
+      const visible = !prev || prev.owned;
+      if (!slot.owned && !visible) continue;
+
       this.hud.updateUpgradeRow(slot.config.id, {
         owned: slot.owned,
         level: slot.level,
         cost: cost === Infinity ? '---' : cost,
-        canAfford: this.score.canAfford(cost),
+        canAfford,
         maxLevel: AUTO_CHICKEN.MAX_LEVEL,
       });
     }
+    this.hud.setUpgradeToggleHighlight(anyAffordable);
+    this._updateGoalBar();
+  }
+
+  _getNextGoal() {
+    let cheapest = null;
+
+    for (const slot of this._chickenSlots) {
+      const cost = this._getSlotCost(slot);
+      if (cost === Infinity) continue;
+
+      if (!slot.owned) {
+        const prev = this._chickenSlots[this._chickenSlots.indexOf(slot) - 1];
+        if (prev && !prev.owned) continue;
+      }
+
+      if (!cheapest || cost < cheapest.cost) {
+        const label = !slot.owned
+          ? slot.config.name
+          : `${slot.config.name} Lv.${slot.level + 1}`;
+        cheapest = { emoji: slot.config.emoji, name: label, cost };
+      }
+    }
+    return cheapest;
+  }
+
+  _updateGoalBar() {
+    const goal = this._getNextGoal();
+    if (!goal) {
+      this.hud.hideGoalBar();
+      return;
+    }
+    this.hud.updateGoalBar({
+      emoji: goal.emoji,
+      name: goal.name,
+      current: this.score.totalGold,
+      target: goal.cost,
+    });
   }
 
   _spawnAutoEgg(autoChicken) {
@@ -400,7 +447,7 @@ export class GameLoop {
     this.audio.eggLand(AUTO_CHICKEN.AUDIO_VOLUME_SCALE);
     this.particles.emitDust(bin.x, -bin.y + 15);
 
-    const baseGold = Math.max(1, Math.ceil(autoEgg.pegHits * SCORING.BASE_POINTS * bin.multiplier / 10));
+    const baseGold = Math.max(1, Math.ceil(autoEgg.pegHits * SCORING.BASE_GOLD * bin.multiplier));
     const gold = baseGold * autoEgg.goldMultiplier;
 
     this._fireAutoEggFountain(autoEgg, gold);
@@ -410,7 +457,7 @@ export class GameLoop {
     if (autoEgg.landed) return;
     autoEgg.landed = true;
 
-    const baseGold = Math.max(1, Math.ceil(autoEgg.pegHits * SCORING.BASE_POINTS / 10));
+    const baseGold = Math.max(1, Math.ceil(autoEgg.pegHits * SCORING.BASE_GOLD));
     const gold = baseGold * autoEgg.goldMultiplier;
 
     this._fireAutoEggFountain(autoEgg, gold);
@@ -433,6 +480,7 @@ export class GameLoop {
         this.score.collectGold(g);
         this.hud.setGold(this.score.totalGold);
         this._syncAllUpgradeRows();
+        this._updateGoalBar();
       },
       null
     );
@@ -464,7 +512,7 @@ export class GameLoop {
     this.state = STATES.IDLE;
     this.score.resetRun();
     this._idleDelay = TIMING.IDLE_PROMPT_DELAY;
-    this.hud.hideScore();
+    this.hud.hideRunGold();
 
     if (this._hasPlayedRound) {
       this.camera.setTargetZoom(CAMERA.OVERVIEW_ZOOM);
@@ -479,6 +527,12 @@ export class GameLoop {
     if (this._hasPlayedRound) {
       this._syncAllUpgradeRows();
       this.hud.showUpgradeToggle();
+      this._updateGoalBar();
+
+      if (!this._hasPulsedToggle) {
+        this._hasPulsedToggle = true;
+        setTimeout(() => this.hud.pulseUpgradeToggle(), 400);
+      }
     }
   }
 
@@ -491,6 +545,7 @@ export class GameLoop {
     this.hud.hidePowerupButton();
     this.hud.closeUpgradePanel();
     this.hud.hideUpgradeToggle();
+    this.hud.hideGoalBar();
 
     if (this._dupliBounceActive) {
       this._dupliBounceInFlight = true;
@@ -833,7 +888,7 @@ export class GameLoop {
       () => {
         this._coinFountainActive = false;
         this.renderer.setBgBrightness(0);
-        this.hud.hideScore();
+        this.hud.hideRunGold();
 
         setTimeout(() => {
           if (this.state === STATES.HATCH) {

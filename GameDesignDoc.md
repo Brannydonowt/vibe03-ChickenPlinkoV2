@@ -88,16 +88,19 @@ IDLE → WARMUP → DROP → LAND → HATCH → TRANSITION → IDLE
 
 ---
 
-## 5. Scoring System
+## 5. Scoring System — Gold-Direct Economy
 
-### Peg Hit Scoring
-- **Base points per hit:** 10
+Every peg bounce directly awards gold. There is no intermediate "points" currency.
+
+### Peg Hit Gold
+- **Base gold per hit:** 1
 - **Combo system:** Rapid successive peg hits within a **400ms window** increase the combo counter (max **×10**)
-- Points per hit = `BASE_POINTS (10) × combo_multiplier`
-- All peg hit points accumulate into the **run score**
+- Gold per hit = `BASE_GOLD (1) × combo_multiplier`
+- All peg hit gold accumulates into the **run gold** total
+- Floating text shows `+Xg` on each peg hit, so players immediately see bounces = gold
 
 ### Landing Payout
-- **Gold earned** = `ceil(runScore × binMultiplier / 10)`
+- **Gold earned** = `ceil(runGold × binMultiplier)`
 - Floor landing uses multiplier of **1**
 - Gold is the sole currency
 
@@ -115,8 +118,8 @@ IDLE → WARMUP → DROP → LAND → HATCH → TRANSITION → IDLE
 ### Gold Sources
 | Source | Formula |
 |--------|---------|
-| Manual egg drop | `ceil(runScore × binMultiplier / 10)` |
-| Auto-chicken egg | `max(1, ceil(pegHits × 10 × binMultiplier / 10)) × goldMultiplier` |
+| Manual egg drop | `ceil(runGold × binMultiplier)` |
+| Auto-chicken egg | `max(1, ceil(pegHits × 1 × binMultiplier)) × goldMultiplier` |
 | Duplicate egg (Dupli-Bounce) | Same as manual, added as bonus gold |
 
 ### Gold Sinks
@@ -275,13 +278,23 @@ All UI is HTML/CSS DOM overlay (not rendered in Three.js canvas).
 
 ### HUD Elements
 - **Gold pill:** Persistent top-of-screen counter with coin SVG icon
-- **Run score:** Displayed during active drops
+- **Run gold display:** Gold-themed counter (coin icon + value) shown during active drops, replacing the old "pts" score display. Ticks up with each peg hit so players see bounces = gold.
 - **Combo counter:** Shows current combo multiplier during drops
 - **Tap prompt:** Large pulsating "LAY YOUR EGG!" for first-time users; subtle "Tap to lay!" icon after first round
 - **Edge glow:** CSS glow effect that intensifies with combo
 
+### Next Goal Progress Bar
+Persistent bar below the upgrade toggle in the top-left HUD. Answers "why am I collecting gold?"
+- Shows progress toward the cheapest available purchase or upgrade
+- Displays: progress fill bar, current gold / target cost, emoji + name of target
+- Tapping the bar opens the upgrade panel
+- Hidden during active drops; visible during idle after first round
+- Goal selection logic: scans chicken slots for cheapest available action (unpurchased chicken or level upgrade)
+
 ### Upgrade Panel
-- **Toggle button:** Arrow icon at bottom of screen (appears after first round)
+- **Toggle button:** Arrow icon in top-left HUD (appears after first round)
+  - **Pulse animation:** Bounces 3 times after the very first round completes, drawing the player's eye
+  - **Can-afford glow:** Gold border + pulsing box-shadow when the player can afford any upgrade
 - **Slide-up sheet:** Lists available chicken types with:
   - Emoji + name + description
   - Current level indicator
@@ -291,7 +304,7 @@ All UI is HTML/CSS DOM overlay (not rendered in Three.js canvas).
 - Rows unlock sequentially as chickens are purchased
 
 ### Power-Up Bar
-- Dupli-Bounce button (currently hidden by default, visibility issue noted)
+- Dupli-Bounce button (currently hidden by default, visibility issue noted — to be revisited)
 
 ---
 
@@ -363,10 +376,10 @@ main.js (bootstrap + animation loop)
 
 ## 15. Known Issues / Notes
 
-1. **Dupli-Bounce UI:** `HUD.showPowerupButton()` is never called from `GameLoop`, so the power-up button may be invisible to players despite the system being fully implemented in code.
+1. **Dupli-Bounce UI:** `HUD.showPowerupButton()` is never called from `GameLoop`, so the power-up button may be invisible to players despite the system being fully implemented in code. Dupli-Bounce design is pending a revisit.
 2. **Collision categories:** `PEG_CATEGORY`, `EGG_CATEGORY`, `WALL_CATEGORY` are defined in constants but not used in physics body creation; collisions rely on Matter.js defaults and label strings.
 3. **Missing assets on disk:** PNG textures and OGG audio files are referenced by code but not present in the repository (may be in `.gitignore`, LFS, or need generation).
-4. **No persistence:** Gold and progression are session-only; refreshing resets all progress (no localStorage or save system).
+4. **No persistence:** Gold and progression are session-only; refreshing resets all progress (no localStorage or save system). Intentionally deferred during prototyping.
 5. **`AudioManager.layEgg`:** Defined but never called from the game loop.
 
 ---

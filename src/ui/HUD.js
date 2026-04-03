@@ -1,8 +1,8 @@
 export class HUD {
   constructor() {
     this._goldEl = document.getElementById('gold-count');
-    this._scoreEl = document.getElementById('score-count');
-    this._scoreDisplay = document.getElementById('score-display');
+    this._runGoldEl = document.getElementById('run-gold-count');
+    this._runGoldDisplay = document.getElementById('run-gold-display');
     this._comboDisplay = document.getElementById('combo-display');
     this._tapPrompt = document.getElementById('tap-prompt');
     this._screenFlash = document.getElementById('screen-flash');
@@ -22,6 +22,12 @@ export class HUD {
     this._upgradeClose = document.getElementById('upgrade-close');
     this._upgradeList = document.getElementById('upgrade-list');
 
+    this._goalBar = document.getElementById('goal-bar');
+    this._goalBarFill = document.getElementById('goal-bar-fill');
+    this._goalBarEmoji = document.getElementById('goal-bar-emoji');
+    this._goalBarText = document.getElementById('goal-bar-text');
+    this._goalBarProgress = document.getElementById('goal-bar-progress');
+
     this._panelOpen = false;
     this._upgradeRows = {};
     this._upgradeCallback = null;
@@ -38,6 +44,11 @@ export class HUD {
       e.stopPropagation();
       this.closeUpgradePanel();
     });
+
+    this._goalBar.addEventListener('pointerdown', (e) => {
+      e.stopPropagation();
+      this.openUpgradePanel();
+    });
   }
 
   setGold(value) {
@@ -51,9 +62,9 @@ export class HUD {
     setTimeout(() => this._goldPill.classList.remove('throb'), 120);
   }
 
-  setScore(value) {
-    this._scoreEl.textContent = value;
-    this._scoreDisplay.classList.add('visible');
+  setRunGold(value) {
+    this._runGoldEl.textContent = value;
+    this._runGoldDisplay.classList.add('visible');
   }
 
   setCombo(value) {
@@ -86,10 +97,36 @@ export class HUD {
     this._subtleTapPrompt.classList.remove('visible');
   }
 
-  hideScore() {
-    this._scoreDisplay.classList.remove('visible');
+  hideRunGold() {
+    this._runGoldDisplay.classList.remove('visible');
     this._comboDisplay.classList.remove('visible');
     this._edgeGlow.style.opacity = 0;
+  }
+
+  /* --- Goal Bar --- */
+
+  showGoalBar() {
+    this._goalBar.classList.add('visible');
+  }
+
+  hideGoalBar() {
+    this._goalBar.classList.remove('visible');
+  }
+
+  updateGoalBar({ emoji, name, current, target }) {
+    if (!target || target === Infinity) {
+      this.hideGoalBar();
+      return;
+    }
+
+    this._goalBarEmoji.textContent = emoji;
+    this._goalBarText.textContent = name;
+    this._goalBarProgress.textContent = `${current} / ${target}g`;
+
+    const pct = Math.min(current / target, 1) * 100;
+    this._goalBarFill.style.width = `${pct}%`;
+
+    this.showGoalBar();
   }
 
   screenFlash(duration = 0.15) {
@@ -147,6 +184,23 @@ export class HUD {
 
   hideUpgradeToggle() {
     this._upgradeToggle.classList.remove('visible');
+  }
+
+  pulseUpgradeToggle() {
+    this._upgradeToggle.classList.remove('pulse');
+    void this._upgradeToggle.offsetWidth;
+    this._upgradeToggle.classList.add('pulse');
+    this._upgradeToggle.addEventListener('animationend', () => {
+      this._upgradeToggle.classList.remove('pulse');
+    }, { once: true });
+  }
+
+  setUpgradeToggleHighlight(on) {
+    if (on) {
+      this._upgradeToggle.classList.add('can-afford');
+    } else {
+      this._upgradeToggle.classList.remove('can-afford');
+    }
   }
 
   openUpgradePanel() {

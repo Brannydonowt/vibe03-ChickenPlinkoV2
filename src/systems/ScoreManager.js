@@ -3,7 +3,7 @@ import { SCORING } from '../config/constants.js';
 export class ScoreManager {
   constructor() {
     this.totalGold = 0;
-    this.currentRunScore = 0;
+    this.currentRunGold = 0;
     this.pegHits = 0;
     this.combo = 0;
     this._lastHitTime = 0;
@@ -19,14 +19,13 @@ export class ScoreManager {
     }
     this._lastHitTime = time;
 
-    const points = SCORING.BASE_POINTS * this.combo;
-    this.currentRunScore += points;
-    return { points, combo: this.combo };
+    const gold = SCORING.BASE_GOLD * this.combo;
+    this.currentRunGold += gold;
+    return { gold, combo: this.combo };
   }
 
   calculateLanding(binMultiplier) {
-    const gold = Math.ceil(this.currentRunScore * binMultiplier / 10);
-    return gold;
+    return Math.ceil(this.currentRunGold * binMultiplier);
   }
 
   canAfford(amount) {
@@ -44,7 +43,7 @@ export class ScoreManager {
   }
 
   resetRun() {
-    this.currentRunScore = 0;
+    this.currentRunGold = 0;
     this.pegHits = 0;
     this.combo = 0;
     this._lastHitTime = 0;

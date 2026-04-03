@@ -86,7 +86,7 @@ export const CAMERA = {
 };
 
 export const SCORING = {
-  BASE_POINTS: 10,
+  BASE_GOLD: 1,
   COMBO_WINDOW_MS: 400,
   COMBO_MAX: 10,
 };
