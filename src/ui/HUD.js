@@ -34,7 +34,17 @@ export class HUD {
     this._goalBarReward = document.getElementById('goal-bar-reward');
     this._goalBarProgress = document.getElementById('goal-bar-progress');
 
+    this._settingsBtn = document.getElementById('settings-btn');
+    this._settingsPanel = document.getElementById('settings-panel');
+    this._settingsClose = document.getElementById('settings-close');
+    this._settingRows = {
+      fastMode: document.getElementById('setting-fast-mode'),
+      sfxEnabled: document.getElementById('setting-sfx'),
+      musicEnabled: document.getElementById('setting-music'),
+    };
+
     this._panelOpen = false;
+    this._settingsPanelOpen = false;
     this._activeTab = 'player';
     this._upgradeRows = {};
     this._playerRows = {};
@@ -53,6 +63,16 @@ export class HUD {
     this._upgradeBackdrop.addEventListener('pointerdown', (e) => {
       e.stopPropagation();
       this.closeUpgradePanel();
+      this.closeSettingsPanel();
+    });
+
+    this._settingsBtn.addEventListener('pointerdown', (e) => {
+      e.stopPropagation();
+      this.openSettingsPanel();
+    });
+    this._settingsClose.addEventListener('pointerdown', (e) => {
+      e.stopPropagation();
+      this.closeSettingsPanel();
     });
 
     this._goalBar.addEventListener('pointerdown', (e) => {
@@ -261,7 +281,51 @@ export class HUD {
     this._upgradeBackdrop.classList.remove('open');
   }
 
-  isPanelOpen() { return this._panelOpen; }
+  isPanelOpen() { return this._panelOpen || this._settingsPanelOpen; }
+
+  /* --- Settings Panel --- */
+
+  showSettingsBtn() { this._settingsBtn.classList.add('visible'); }
+  hideSettingsBtn() { this._settingsBtn.classList.remove('visible'); }
+
+  openSettingsPanel() {
+    if (this._settingsPanelOpen) return;
+    this._settingsPanelOpen = true;
+    this._settingsPanel.classList.add('open');
+    this._upgradeBackdrop.classList.add('open');
+  }
+
+  closeSettingsPanel() {
+    if (!this._settingsPanelOpen) return;
+    this._settingsPanelOpen = false;
+    this._settingsPanel.classList.remove('open');
+    if (!this._panelOpen) {
+      this._upgradeBackdrop.classList.remove('open');
+    }
+  }
+
+  initSettingsToggles(settings) {
+    for (const [key, rowEl] of Object.entries(this._settingRows)) {
+      const toggle = rowEl.querySelector('.settings-toggle');
+      const handler = (e) => {
+        e.stopPropagation();
+        settings.toggle(key);
+      };
+      rowEl.addEventListener('pointerdown', handler);
+    }
+    this.syncSettingsToggles(settings);
+  }
+
+  syncSettingsToggles(settings) {
+    for (const [key, rowEl] of Object.entries(this._settingRows)) {
+      const toggle = rowEl.querySelector('.settings-toggle');
+      if (settings[key]) {
+        toggle.classList.add('on');
+      } else {
+        toggle.classList.remove('on');
+      }
+    }
+  }
 
   /* --- Player Upgrade Rows --- */
 

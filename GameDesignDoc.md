@@ -347,8 +347,20 @@ Persistent mission-style card below the upgrade toggle. Answers "why am I collec
 - Auto-chicken rows unlock sequentially as chickens are purchased
 - Coin icon uses inline SVG data URI to avoid Vite path issues
 
+### Settings Menu
+- **Gear button:** Top-right corner, 40px semi-transparent circle with white gear icon (from Global Resources). Appears after 2nd manual drop.
+- **Settings panel:** Slide-up sheet (shares backdrop with upgrade panel) containing toggle switches for:
+  - **Fast Mode:** Disables camera follow during manual drops (camera stays in overview), drastically shortens warmup/wobble/crack/transition durations (0.25x speed multiplier). Auto-enabled after 2nd manual drop.
+  - **Sound Effects:** Toggles all SFX (peg hits, hatching, coins, etc.) via guards on AudioManager methods.
+  - **Music:** Toggle for background music (placeholder for future implementation).
+- Toggle switches are pill-shaped (44x24px) with gold active state and sliding knob.
+- Settings state is managed by a singleton `Settings` object with reactive `onChange` listeners.
+
 ### Animation Speed-up
-After the first 2 manual rounds, warmup/wobble/crack/transition durations are reduced by 40% (speed multiplier 0.6). This keeps the game from feeling repetitive on subsequent plays.
+- Rounds 1-2: Normal speed (1.0x multiplier)
+- Rounds 3+: Reduced speed (0.6x multiplier)
+- Fast Mode: Aggressive speed (0.25x multiplier) -- wobble collapses to ~0.3s, warmup to ~0.45s
+- Camera stays in overview during fast mode (no follow, no dynamic zoom)
 
 ### Power-Up Bar
 - Dupli-Bounce button (currently hidden by default — to be revisited)
@@ -403,6 +415,7 @@ main.js (bootstrap + animation loop)
 │   ├── Board.js          (peg grid + walls + bins layout)
 │   ├── ScoreManager.js   (combo scoring + gold wallet)
 │   ├── ParticleSystem.js (GPU-style point particles)
+│   ├── Settings.js       (singleton settings store: fast mode, SFX, music)
 │   └── Environment.js    (parallax clouds/mountains/ground)
 └── ui/
     └── HUD.js            (DOM overlay: gold, score, upgrades)

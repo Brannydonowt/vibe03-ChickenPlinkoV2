@@ -1,6 +1,7 @@
 import { CAMERA, TIMING, CHICKEN, SCORING, EGG, GAME, POWERUP, AUTO_CHICKEN, CHICKEN_TYPES, PLAYER_UPGRADES, GOLDEN_PEG } from '../config/constants.js';
 import { Egg } from '../entities/Egg.js';
 import { AutoChicken } from '../entities/AutoChicken.js';
+import { Settings } from './Settings.js';
 
 const STATES = {
   IDLE: 'idle',
@@ -85,6 +86,7 @@ export class GameLoop {
   }
 
   _getSpeedMult() {
+    if (Settings.fastMode) return 0.25;
     return this._roundCount >= 2 ? 0.6 : 1.0;
   }
 
@@ -682,6 +684,10 @@ export class GameLoop {
       this.hud.showUpgradeToggle();
       this._updateGoalBar();
 
+      if (this._roundCount >= 2) {
+        this.hud.showSettingsBtn();
+      }
+
       if (!this._hasPulsedToggle) {
         this._hasPulsedToggle = true;
         setTimeout(() => this.hud.pulseUpgradeToggle(), 400);
@@ -697,8 +703,10 @@ export class GameLoop {
     this.hud.hideSubtleTapPrompt();
     this.hud.hidePowerupButton();
     this.hud.closeUpgradePanel();
+    this.hud.closeSettingsPanel();
     this.hud.hideUpgradeToggle();
     this.hud.hideGoalBar();
+    this.hud.hideSettingsBtn();
 
     if (this._dupliBounceActive) {
       this._dupliBounceInFlight = true;
@@ -710,7 +718,9 @@ export class GameLoop {
       CHICKEN.WARMUP_DURATION * this._getSpeedMult()
     );
     this.audio.chickenSqueeze();
-    this.camera.setTargetZoom(CAMERA.WARMUP_ZOOM);
+    if (!Settings.fastMode) {
+      this.camera.setTargetZoom(CAMERA.WARMUP_ZOOM);
+    }
   }
 
   _enterDrop() {
@@ -754,7 +764,9 @@ export class GameLoop {
     }
     this.particles.emitEggPop(baseX, -y);
 
-    this.camera.setTargetZoom(CAMERA.DROP_ZOOM_START);
+    if (!Settings.fastMode) {
+      this.camera.setTargetZoom(CAMERA.DROP_ZOOM_START);
+    }
   }
 
   _enterHatch() {
@@ -774,7 +786,9 @@ export class GameLoop {
     if (this.egg && this.egg.alive) {
       this.physics.setStatic(this.egg.body, true);
     }
-    this.camera.setTargetZoom(CAMERA.HATCH_ZOOM);
+    if (!Settings.fastMode) {
+      this.camera.setTargetZoom(CAMERA.HATCH_ZOOM);
+    }
   }
 
   _enterTransition() {
@@ -782,6 +796,10 @@ export class GameLoop {
     this._stateTimer = 0;
     this._hasPlayedRound = true;
     this._roundCount++;
+
+    if (this._roundCount === 2) {
+      Settings.set('fastMode', true);
+    }
 
     this._dupliBounceInFlight = false;
     this._bonusGold = 0;
@@ -876,11 +894,12 @@ export class GameLoop {
     this._stateTimer += delta;
     const warmupDur = CHICKEN.WARMUP_DURATION * this._getSpeedMult();
 
-    this.camera.followX(this.chicken.getX());
-    this.camera.followY(CHICKEN.Y_POS);
-
-    const t = Math.min(this._stateTimer / warmupDur, 1);
-    this.camera.shake(t * t * 0.8);
+    if (!Settings.fastMode) {
+      this.camera.followX(this.chicken.getX());
+      this.camera.followY(CHICKEN.Y_POS);
+      const t = Math.min(this._stateTimer / warmupDur, 1);
+      this.camera.shake(t * t * 0.8);
+    }
 
     if (this._stateTimer >= warmupDur) {
       this._enterDrop();
@@ -907,20 +926,23 @@ export class GameLoop {
       if (dupe.alive) dupe.update();
     }
 
-    this.camera.followX(primaryEgg.getX());
-    this.camera.followY(primaryEgg.getY());
-
-    const eggY = primaryEgg.getY();
-    const progress = Math.max(0, Math.min(1,
-      (eggY - CAMERA.BOARD_TOP_Y) / (CAMERA.BOARD_BOTTOM_Y - CAMERA.BOARD_TOP_Y)
-    ));
-    const positionZoom = CAMERA.DROP_ZOOM_MAX + (CAMERA.DROP_ZOOM_MIN - CAMERA.DROP_ZOOM_MAX) * progress;
-
     const speed = primaryEgg.getSpeed();
-    const speedZoom = CAMERA.DROP_ZOOM_MAX - speed * CAMERA.SPEED_ZOOM_FACTOR;
-    const clampedSpeedZoom = Math.max(CAMERA.DROP_ZOOM_MIN, Math.min(CAMERA.DROP_ZOOM_MAX, speedZoom));
 
-    this.camera.setTargetZoom(Math.min(positionZoom, clampedSpeedZoom));
+    if (!Settings.fastMode) {
+      this.camera.followX(primaryEgg.getX());
+      this.camera.followY(primaryEgg.getY());
+
+      const eggY = primaryEgg.getY();
+      const progress = Math.max(0, Math.min(1,
+        (eggY - CAMERA.BOARD_TOP_Y) / (CAMERA.BOARD_BOTTOM_Y - CAMERA.BOARD_TOP_Y)
+      ));
+      const positionZoom = CAMERA.DROP_ZOOM_MAX + (CAMERA.DROP_ZOOM_MIN - CAMERA.DROP_ZOOM_MAX) * progress;
+
+      const speedZoom = CAMERA.DROP_ZOOM_MAX - speed * CAMERA.SPEED_ZOOM_FACTOR;
+      const clampedSpeedZoom = Math.max(CAMERA.DROP_ZOOM_MIN, Math.min(CAMERA.DROP_ZOOM_MAX, speedZoom));
+
+      this.camera.setTargetZoom(Math.min(positionZoom, clampedSpeedZoom));
+    }
 
     for (const e of this._mainEggs) {
       if (!e.alive || e.landed) continue;
@@ -980,7 +1002,7 @@ export class GameLoop {
 
     if (this._freezeTimer > 0) {
       this._freezeTimer -= delta;
-      if (this.egg) {
+      if (this.egg && !Settings.fastMode) {
         this.camera.followX(this.egg.getX());
         this.camera.followY(this.egg.getY());
       }
@@ -995,8 +1017,10 @@ export class GameLoop {
       const sy = 0.7 + (1 - 0.7) * t;
       this.egg.setSquash(sx, sy);
       this.egg.update();
-      this.camera.followX(this.egg.getX());
-      this.camera.followY(this.egg.getY());
+      if (!Settings.fastMode) {
+        this.camera.followX(this.egg.getX());
+        this.camera.followY(this.egg.getY());
+      }
     }
 
     if (this._stateTimer >= TIMING.HATCH_DELAY) {
@@ -1010,7 +1034,7 @@ export class GameLoop {
     const wobbleDur = TIMING.WOBBLE_DURATION * sm;
     const crackDur = TIMING.CRACK_DURATION * sm;
 
-    if (this.egg) {
+    if (this.egg && !Settings.fastMode) {
       this.camera.followX(this.egg.getX());
       this.camera.followY(this.egg.getY());
     }

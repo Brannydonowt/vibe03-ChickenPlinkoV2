@@ -208,16 +208,162 @@
       letter-spacing: 0.3px;
     }
 
-    .version-label {
+    /* Settings Button */
+    .hud-top-right {
       position: absolute;
-      top: 14px; right: 14px;
+      top: 0; right: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      padding: 14px 16px;
+      gap: 6px;
+      z-index: 2;
+    }
+    .settings-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 40px; height: 40px;
+      background: rgba(0,0,0,0.45);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      border: 1.5px solid rgba(255,255,255,0.2);
+      border-radius: 50%;
+      cursor: pointer;
+      pointer-events: auto;
+      opacity: 0;
+      transform: scale(0.8);
+      transition: opacity 0.35s ease, transform 0.35s ease;
+      visibility: hidden;
+    }
+    .settings-btn.visible {
+      opacity: 1;
+      transform: scale(1);
+      visibility: visible;
+    }
+    .settings-btn:active { transform: scale(0.88); }
+    .settings-btn img {
+      width: 22px; height: 22px;
+      opacity: 0.75;
+    }
+
+    .version-label {
       font-size: 11px;
       font-weight: 600;
       color: rgba(255,255,255,0.35);
       letter-spacing: 0.3px;
       pointer-events: none;
-      z-index: 2;
       text-shadow: 0 1px 3px rgba(0,0,0,0.4);
+    }
+
+    /* Settings Panel */
+    .settings-panel {
+      position: absolute;
+      bottom: 0; left: 0;
+      width: 100%;
+      max-height: 55%;
+      background: rgba(18,18,30,0.92);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-top: 2px solid rgba(255,255,255,0.2);
+      border-radius: 20px 20px 0 0;
+      transform: translateY(100%);
+      transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+      pointer-events: none;
+      z-index: 31;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .settings-panel.open { transform: translateY(0); pointer-events: auto; }
+
+    .settings-panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 18px 10px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      flex-shrink: 0;
+    }
+    .settings-panel-title {
+      font-family: 'Lilita One', 'Impact', sans-serif;
+      font-size: 22px;
+      color: #fff;
+      letter-spacing: 1px;
+    }
+    .settings-panel-close {
+      display: flex; align-items: center; justify-content: center;
+      width: 36px; height: 36px;
+      background: rgba(255,255,255,0.08);
+      border: none; border-radius: 50%;
+      cursor: pointer; pointer-events: auto;
+      transition: background 0.2s ease;
+    }
+    .settings-panel-close:active { background: rgba(255,255,255,0.18); }
+    .settings-panel-close img {
+      width: 16px; height: 16px;
+      filter: brightness(0) invert(1);
+      opacity: 0.7;
+    }
+
+    .settings-panel-body {
+      padding: 12px 18px 24px;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .settings-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      pointer-events: auto;
+      cursor: pointer;
+    }
+    .settings-row:last-child { border-bottom: none; }
+    .settings-row-text {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .settings-label {
+      font-size: 15px;
+      font-weight: 700;
+      color: #fff;
+    }
+    .settings-desc {
+      font-size: 12px;
+      color: rgba(255,255,255,0.4);
+    }
+
+    .settings-toggle {
+      width: 44px; height: 24px;
+      background: rgba(255,255,255,0.15);
+      border-radius: 12px;
+      position: relative;
+      flex-shrink: 0;
+      transition: background 0.25s ease;
+      cursor: pointer;
+    }
+    .settings-toggle.on {
+      background: #FFD700;
+    }
+    .settings-toggle-knob {
+      position: absolute;
+      top: 2px; left: 2px;
+      width: 20px; height: 20px;
+      background: #fff;
+      border-radius: 50%;
+      transition: transform 0.25s ease;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+    }
+    .settings-toggle.on .settings-toggle-knob {
+      transform: translateX(20px);
     }
 
     .hud-top-center {
@@ -649,7 +795,12 @@
         <div class="goal-bar-progress" id="goal-bar-progress"></div>
       </div>
     </div>
-    <div class="version-label" id="version-label"></div>
+    <div class="hud-top-right">
+      <button class="settings-btn" id="settings-btn">
+        <img src="sprites/icons/Gear.svg" alt="Settings" />
+      </button>
+      <div class="version-label" id="version-label"></div>
+    </div>
     <div class="hud-top-center">
       <div class="run-gold-display" id="run-gold-display">
         <img class="run-coin-icon" src="sprites/icons/Coin.svg" alt="" />
@@ -689,6 +840,37 @@
       <div class="upgrade-panel-body">
         <div class="upgrade-panel-list" id="upgrade-tab-player"></div>
         <div class="upgrade-panel-list" id="upgrade-tab-auto" style="display:none"></div>
+      </div>
+    </div>
+    <div class="settings-panel" id="settings-panel">
+      <div class="settings-panel-header">
+        <span class="settings-panel-title">Settings</span>
+        <button class="settings-panel-close" id="settings-close">
+          <img src="sprites/icons/X Button.svg" alt="Close" />
+        </button>
+      </div>
+      <div class="settings-panel-body">
+        <div class="settings-row" id="setting-fast-mode">
+          <div class="settings-row-text">
+            <span class="settings-label">Fast Mode</span>
+            <span class="settings-desc">Skip camera follow, speed up hatching</span>
+          </div>
+          <div class="settings-toggle"><div class="settings-toggle-knob"></div></div>
+        </div>
+        <div class="settings-row" id="setting-sfx">
+          <div class="settings-row-text">
+            <span class="settings-label">Sound Effects</span>
+            <span class="settings-desc">Peg hits, hatching, coins</span>
+          </div>
+          <div class="settings-toggle on"><div class="settings-toggle-knob"></div></div>
+        </div>
+        <div class="settings-row" id="setting-music">
+          <div class="settings-row-text">
+            <span class="settings-label">Music</span>
+            <span class="settings-desc">Background music</span>
+          </div>
+          <div class="settings-toggle on"><div class="settings-toggle-knob"></div></div>
+        </div>
       </div>
     </div>
     <div class="screen-flash" id="screen-flash"></div>

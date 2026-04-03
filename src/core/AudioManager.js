@@ -1,4 +1,5 @@
 import { AUDIO } from '../config/constants.js';
+import { Settings } from '../systems/Settings.js';
 
 export class AudioManager {
   constructor() {
@@ -29,6 +30,7 @@ export class AudioManager {
   }
 
   async _playSound(name, volume = AUDIO.MASTER_VOLUME) {
+    if (!Settings.sfxEnabled) return;
     this._init();
     const buffer = await this._getBuffer(name);
     if (!buffer) return;
@@ -42,6 +44,7 @@ export class AudioManager {
   }
 
   _play(freq, duration, type = 'sine', volume = AUDIO.MASTER_VOLUME, detune = 0) {
+    if (!Settings.sfxEnabled) return;
     this._init();
     const ctx = this.ctx;
     const osc = ctx.createOscillator();
@@ -61,6 +64,7 @@ export class AudioManager {
   }
 
   _noise(duration, volume = AUDIO.MASTER_VOLUME * 0.5) {
+    if (!Settings.sfxEnabled) return;
     this._init();
     const ctx = this.ctx;
     const bufferSize = ctx.sampleRate * duration;
@@ -107,6 +111,7 @@ export class AudioManager {
   }
 
   eggPop(volumeScale = 1.0) {
+    if (!Settings.sfxEnabled) return;
     this._init();
     const ctx = this.ctx;
     const now = ctx.currentTime;
@@ -164,6 +169,7 @@ export class AudioManager {
   }
 
   purchasePowerup() {
+    if (!Settings.sfxEnabled) return;
     this._init();
     const vol = AUDIO.MASTER_VOLUME * 0.7;
     const notes = [523, 659, 784];
@@ -181,6 +187,7 @@ export class AudioManager {
   }
 
   whoosh() {
+    if (!Settings.sfxEnabled) return;
     this._init();
     const ctx = this.ctx;
     const osc = ctx.createOscillator();
