@@ -152,19 +152,22 @@ export class Board {
     for (const bin of this.bins) bin.update(delta);
   }
 
-  setGoldenPegs(count) {
-    this.clearGoldenPegs();
-    if (count <= 0) return;
+  cycleSpecialPegs(counts) {
+    this.clearSpecialPegs();
     const shuffled = [...this.pegs].sort(() => Math.random() - 0.5);
-    const toGild = Math.min(count, shuffled.length);
-    for (let i = 0; i < toGild; i++) {
-      shuffled[i].setGolden(true);
+    let idx = 0;
+    for (const type of ['rainbow', 'diamond', 'golden']) {
+      const count = counts[type] || 0;
+      const n = Math.min(count, shuffled.length - idx);
+      for (let i = 0; i < n; i++) {
+        shuffled[idx++].setSpecial(type);
+      }
     }
   }
 
-  clearGoldenPegs() {
+  clearSpecialPegs() {
     for (const peg of this.pegs) {
-      if (peg.isGolden) peg.setGolden(false);
+      if (peg.specialType) peg.setSpecial(null);
     }
   }
 

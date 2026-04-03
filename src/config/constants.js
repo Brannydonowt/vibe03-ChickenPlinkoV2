@@ -225,12 +225,33 @@ export const PLAYER_UPGRADES = [
     costMult: 2.2,
     effect: 3,
   },
+  {
+    id: 'diamond_pegs',
+    name: 'Diamond Pegs',
+    emoji: '\u{1F48E}',
+    description: 'Random pegs give 25x gold',
+    maxLevel: 5,
+    baseCost: 10000,
+    costMult: 2.5,
+    effect: 1,
+  },
+  {
+    id: 'rainbow_pegs',
+    name: 'Rainbow Pegs',
+    emoji: '\u{1F308}',
+    description: 'Random pegs give 50x gold',
+    maxLevel: 3,
+    baseCost: 75000,
+    costMult: 3.0,
+    effect: 1,
+  },
 ];
 
-export const GOLDEN_PEG = {
-  GOLD_MULTIPLIER: 5,
-  COLOR: 0xFFD700,
-  SCALE: 1.3,
+export const SPECIAL_PEGS = {
+  CYCLE_INTERVAL: 30,
+  golden:  { multiplier: 5,  color: 0xFFD700, hitColor: 0xFFFFAA, textColor: '#FFFF00', scale: 1.3 },
+  diamond: { multiplier: 25, color: 0x44EEFF, hitColor: 0xAAFFFF, textColor: '#44EEFF', scale: 1.35 },
+  rainbow: { multiplier: 50, color: 0xFF44FF, hitColor: 0xFFAAFF, textColor: '#FF44FF', scale: 1.4 },
 };
 
 export const COLORS = {

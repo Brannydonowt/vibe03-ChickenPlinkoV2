@@ -1,4 +1,4 @@
-import { CAMERA, TIMING, CHICKEN, SCORING, EGG, GAME, POWERUP, AUTO_CHICKEN, CHICKEN_TYPES, PLAYER_UPGRADES, GOLDEN_PEG } from '../config/constants.js';
+import { CAMERA, TIMING, CHICKEN, SCORING, EGG, GAME, POWERUP, AUTO_CHICKEN, CHICKEN_TYPES, PLAYER_UPGRADES, SPECIAL_PEGS } from '../config/constants.js';
 import { Egg } from '../entities/Egg.js';
 import { AutoChicken } from '../entities/AutoChicken.js';
 import { Settings } from './Settings.js';
@@ -58,6 +58,7 @@ export class GameLoop {
 
     this._playerUpgrades = {};
     for (const u of PLAYER_UPGRADES) this._playerUpgrades[u.id] = 0;
+    this._specialPegTimer = 0;
 
     this._chickenSlots = CHICKEN_TYPES.map(type => ({
       config: type,
@@ -170,8 +171,9 @@ export class GameLoop {
 
     const now = performance.now();
     const { gold, combo } = this.score.onPegHit(now);
-    const finalGold = peg.isGolden ? gold * GOLDEN_PEG.GOLD_MULTIPLIER : gold;
-    if (peg.isGolden) {
+    const pegMulti = peg.specialType ? SPECIAL_PEGS[peg.specialType].multiplier : 1;
+    const finalGold = gold * pegMulti;
+    if (pegMulti > 1) {
       const extra = finalGold - gold;
       this.score.totalGold += extra;
       this.score.currentRunGold += extra;
@@ -188,7 +190,9 @@ export class GameLoop {
     this.particles.emitPegSpark(peg.x, -peg.y);
 
     const textSize = combo > 3 ? 42 : combo > 1 ? 34 : 28;
-    const textColor = peg.isGolden ? '#FFFF00' : (combo > 3 ? '#FF6B35' : combo > 1 ? '#FFD700' : '#FFFFFF');
+    const textColor = peg.specialType
+      ? SPECIAL_PEGS[peg.specialType].textColor
+      : (combo > 3 ? '#FF6B35' : combo > 1 ? '#FFD700' : '#FFFFFF');
     this.particles.spawnFloatingGold(peg.x, -peg.y + 20, finalGold, textSize, textColor);
 
     this.hud.setGold(this.score.totalGold);
@@ -290,7 +294,7 @@ export class GameLoop {
     dupe.pegHits++;
     this.board.rippleFrom(peg);
 
-    const gold = peg.isGolden ? GOLDEN_PEG.GOLD_MULTIPLIER : 1;
+    const gold = peg.specialType ? SPECIAL_PEGS[peg.specialType].multiplier : 1;
     this.score.currentRunGold += gold;
     this.score.totalGold += gold;
 
@@ -298,7 +302,8 @@ export class GameLoop {
     this.audio.pegHit(normalizedY, 1);
 
     this.particles.emitPegSpark(peg.x, -peg.y);
-    this.particles.spawnFloatingGold(peg.x, -peg.y + 20, gold, 22, peg.isGolden ? '#FFFF00' : '#DDDDDD');
+    const dupeTextColor = peg.specialType ? SPECIAL_PEGS[peg.specialType].textColor : '#DDDDDD';
+    this.particles.spawnFloatingGold(peg.x, -peg.y + 20, gold, 22, dupeTextColor);
 
     this.hud.setGold(this.score.totalGold);
     if (!Settings.fastMode) {
@@ -384,6 +389,38 @@ export class GameLoop {
 
     this.audio.purchasePowerup();
     this._syncAllUpgradeRows();
+
+    if (upgradeId.endsWith('_pegs')) {
+      this._cycleSpecialPegs();
+      this._specialPegTimer = 0;
+    }
+  }
+
+  /* --- Special peg cycling --- */
+
+  _updateSpecialPegCycle(delta) {
+    const hasAny = this._playerUpgrades.golden_pegs > 0
+      || this._playerUpgrades.diamond_pegs > 0
+      || this._playerUpgrades.rainbow_pegs > 0;
+    if (!hasAny) return;
+
+    this._specialPegTimer += delta;
+    if (this._specialPegTimer >= SPECIAL_PEGS.CYCLE_INTERVAL) {
+      this._specialPegTimer = 0;
+      this._cycleSpecialPegs();
+    }
+  }
+
+  _cycleSpecialPegs() {
+    const counts = {};
+    for (const type of ['rainbow', 'diamond', 'golden']) {
+      const level = this._playerUpgrades[type + '_pegs'];
+      if (level > 0) {
+        const config = PLAYER_UPGRADES.find(u => u.id === type + '_pegs');
+        counts[type] = level * config.effect;
+      }
+    }
+    this.board.cycleSpecialPegs(counts);
   }
 
   _syncPlayerUpgradeRows() {
@@ -561,8 +598,8 @@ export class GameLoop {
     autoEgg.pegHits++;
     this.board.rippleFrom(peg);
 
-    const baseGold = peg.isGolden ? GOLDEN_PEG.GOLD_MULTIPLIER : 1;
-    const gold = baseGold * autoEgg.goldMultiplier;
+    const pegMulti = peg.specialType ? SPECIAL_PEGS[peg.specialType].multiplier : 1;
+    const gold = pegMulti * autoEgg.goldMultiplier;
     this.score.collectGold(gold);
 
     const vol = AUTO_CHICKEN.AUDIO_VOLUME_SCALE;
@@ -570,11 +607,8 @@ export class GameLoop {
     this.audio.pegHit(normalizedY, 1, vol);
 
     this.particles.emitPegSpark(peg.x, -peg.y);
-    this.particles.spawnFloatingGold(
-      peg.x, -peg.y + 20,
-      gold, 22,
-      peg.isGolden ? '#FFFF00' : '#AADDFF'
-    );
+    const autoTextColor = peg.specialType ? SPECIAL_PEGS[peg.specialType].textColor : '#AADDFF';
+    this.particles.spawnFloatingGold(peg.x, -peg.y + 20, gold, 22, autoTextColor);
 
     this.hud.setGold(this.score.totalGold);
     const screenPos = this._pegHitScreenPos(peg);
@@ -674,7 +708,6 @@ export class GameLoop {
     this.score.resetRun();
     this._idleDelay = TIMING.IDLE_PROMPT_DELAY;
     this.hud.hideRunGold();
-    this.board.clearGoldenPegs();
 
     if (this._hasPlayedRound) {
       this.camera.setTargetZoom(CAMERA.OVERVIEW_ZOOM);
@@ -744,12 +777,6 @@ export class GameLoop {
     this.audio.chickenCluck();
     this.camera.shake(5.0);
 
-    const goldenLevel = this._playerUpgrades.golden_pegs;
-    if (goldenLevel > 0) {
-      const goldenConfig = PLAYER_UPGRADES.find(u => u.id === 'golden_pegs');
-      this.board.setGoldenPegs(goldenLevel * goldenConfig.effect);
-    }
-
     const eggCount = 1 + this._playerUpgrades.multi_egg;
     const bouncinessConfig = PLAYER_UPGRADES.find(u => u.id === 'bounciness');
     const restitutionBonus = this._playerUpgrades.bounciness * bouncinessConfig.effect;
@@ -814,7 +841,6 @@ export class GameLoop {
     this._dupliBounceInFlight = false;
     this._bonusGold = 0;
     this._cleanupDuplicates();
-    this.board.clearGoldenPegs();
 
     if (this.egg) {
       this.egg.destroy(this.renderer.scene);
@@ -836,6 +862,7 @@ export class GameLoop {
     this.chicken.update(delta);
     this.board.update(delta);
     this.particles.update(delta);
+    this._updateSpecialPegCycle(delta);
 
     for (const slot of this._chickenSlots) {
       if (!slot.chicken) continue;
