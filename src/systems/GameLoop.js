@@ -181,7 +181,9 @@ export class GameLoop {
     this.audio.pegHit(normalizedY, combo);
 
     const speed = mainEgg.getSpeed();
-    this.camera.shake(CAMERA.SHAKE_INTENSITY * Math.min(speed / 5, 1.5));
+    if (!Settings.fastMode) {
+      this.camera.shake(CAMERA.SHAKE_INTENSITY * Math.min(speed / 5, 1.5));
+    }
 
     this.particles.emitPegSpark(peg.x, -peg.y);
 
@@ -190,9 +192,12 @@ export class GameLoop {
     this.particles.spawnFloatingGold(peg.x, -peg.y + 20, finalGold, textSize, textColor);
 
     this.hud.setGold(this.score.totalGold);
-    this.hud.setRunGold(this.score.currentRunGold);
-    this.hud.setCombo(combo);
-    this.hud.setEdgeGlow(combo / SCORING.COMBO_MAX);
+
+    if (!Settings.fastMode) {
+      this.hud.setRunGold(this.score.currentRunGold);
+      this.hud.setCombo(combo);
+      this.hud.setEdgeGlow(combo / SCORING.COMBO_MAX);
+    }
 
     const screenPos = this._pegHitScreenPos(peg);
     this.hud.spawnFlyingCoin(screenPos.x, screenPos.y);
@@ -296,7 +301,9 @@ export class GameLoop {
     this.particles.spawnFloatingGold(peg.x, -peg.y + 20, gold, 22, peg.isGolden ? '#FFFF00' : '#DDDDDD');
 
     this.hud.setGold(this.score.totalGold);
-    this.hud.setRunGold(this.score.currentRunGold);
+    if (!Settings.fastMode) {
+      this.hud.setRunGold(this.score.currentRunGold);
+    }
 
     const screenPos = this._pegHitScreenPos(peg);
     this.hud.spawnFlyingCoin(screenPos.x, screenPos.y);
@@ -704,9 +711,12 @@ export class GameLoop {
     this.hud.hidePowerupButton();
     this.hud.closeUpgradePanel();
     this.hud.closeSettingsPanel();
-    this.hud.hideUpgradeToggle();
-    this.hud.hideGoalBar();
-    this.hud.hideSettingsBtn();
+
+    if (!Settings.fastMode) {
+      this.hud.hideUpgradeToggle();
+      this.hud.hideGoalBar();
+      this.hud.hideSettingsBtn();
+    }
 
     if (this._dupliBounceActive) {
       this._dupliBounceInFlight = true;
