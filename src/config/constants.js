@@ -1,7 +1,7 @@
 export const VERSION = {
   MAJOR: 1,
   MINOR: 1,
-  BUILD: 0,
+  BUILD: 1,
   toString() {
     return `v${this.MAJOR}.${this.MINOR} build ${this.BUILD}`;
   },

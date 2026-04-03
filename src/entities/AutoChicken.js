@@ -202,12 +202,6 @@ export class AutoChicken {
     const bobY = Math.sin(this._time * CHICKEN.BOB_SPEED * 0.9) * CHICKEN.BOB_AMPLITUDE * 0.8;
     this.group.position.y = -AUTO_CHICKEN.Y_POS + bobY;
 
-    if (this.typeConfig.id === 'cosmic') {
-      const pulse = 1 + Math.sin(this._time * 3) * 0.03;
-      this.sprite.scale.x *= pulse;
-      this.sprite.scale.y *= pulse;
-    }
-
     return { shouldLay };
   }
 }
