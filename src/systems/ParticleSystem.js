@@ -183,6 +183,35 @@ export class ParticleSystem {
     });
   }
 
+  emitBinLand(x, y, color, multiplier) {
+    const scale = { 1: 1, 3: 1.5, 5: 2.2, 10: 3.5 }[multiplier] || 1;
+    const count = Math.round(6 * scale);
+
+    this.emit(x, y, count, {
+      color,
+      speed: 50 + multiplier * 8,
+      life: 0.4 + multiplier * 0.03,
+      size: 3 + scale,
+      spread: multiplier >= 10 ? Math.PI * 2 : Math.PI * 1.2,
+      angle: -Math.PI / 2,
+      gravity: 150,
+      drag: 0.96,
+    });
+
+    if (multiplier >= 10) {
+      this.emit(x, y, 10, {
+        color: 0xFFD700,
+        speed: 100,
+        life: 0.5,
+        size: 2.5,
+        spread: Math.PI * 2,
+        angle: 0,
+        gravity: 60,
+        drag: 0.95,
+      });
+    }
+  }
+
   emitDust(x, y) {
     this.emit(x, y, 8, {
       color: COLORS.DUST,

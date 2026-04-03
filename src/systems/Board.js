@@ -147,9 +147,27 @@ export class Board {
     }
   }
 
-  update(delta) {
+  update(delta, particles) {
     for (const peg of this.pegs) peg.update(delta);
-    for (const bin of this.bins) bin.update(delta);
+    for (const bin of this.bins) {
+      bin.update(delta);
+      if (particles && bin.multiplier === 10) {
+        this._sparkleTimer = (this._sparkleTimer || 0) + delta;
+        if (this._sparkleTimer > 0.15) {
+          this._sparkleTimer = 0;
+          particles.emit(bin.x, -bin.y + 10, 1, {
+            color: 0xFFD700,
+            speed: 15,
+            life: 0.6,
+            size: 2.5,
+            spread: Math.PI * 0.4,
+            angle: -Math.PI / 2,
+            gravity: -10,
+            drag: 0.96,
+          });
+        }
+      }
+    }
   }
 
   cycleSpecialPegs(counts) {

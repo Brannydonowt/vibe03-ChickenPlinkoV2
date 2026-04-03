@@ -33,6 +33,12 @@ export const BINS = {
   HEIGHT: 50,
   MULTIPLIERS: [1, 3, 5, 10, 5, 3, 1],
   COLORS: [0x4CAF50, 0x8BC34A, 0xFFEB3B, 0xFF9800, 0xFFEB3B, 0x8BC34A, 0x4CAF50],
+  TIERS: {
+    1:  { glowColor: 0x4CAF50, glowIntensity: 0,    labelScale: 1.0, labelColor: '#ffffff', labelStroke: 3 },
+    3:  { glowColor: 0x8BC34A, glowIntensity: 0.15, labelScale: 1.05, labelColor: '#ffffff', labelStroke: 3 },
+    5:  { glowColor: 0xFFEB3B, glowIntensity: 0.3,  labelScale: 1.1,  labelColor: '#FFFFA0', labelStroke: 3.5 },
+    10: { glowColor: 0xFFD700, glowIntensity: 0.6,  labelScale: 1.2,  labelColor: '#FFD700', labelStroke: 4 },
+  },
 };
 
 export const EGG = {

@@ -1,4 +1,4 @@
-import { CAMERA, TIMING, CHICKEN, SCORING, EGG, GAME, POWERUP, AUTO_CHICKEN, CHICKEN_TYPES, PLAYER_UPGRADES, SPECIAL_PEGS } from '../config/constants.js';
+import { CAMERA, TIMING, CHICKEN, SCORING, EGG, GAME, POWERUP, AUTO_CHICKEN, CHICKEN_TYPES, PLAYER_UPGRADES, SPECIAL_PEGS, BINS } from '../config/constants.js';
 import { Egg } from '../entities/Egg.js';
 import { AutoChicken } from '../entities/AutoChicken.js';
 import { Settings } from './Settings.js';
@@ -213,10 +213,13 @@ export class GameLoop {
     mainEgg.landedBin = bin;
 
     bin.glow();
+    bin.squash();
+    bin.popLabel();
     this.audio.eggLand();
     this.particles.emitDust(bin.x, -bin.y + 15);
+    this.particles.emitBinLand(bin.x, -bin.y + 10, BINS.COLORS[bin.index], bin.multiplier);
 
-    this.camera.shake(3.0);
+    this.camera.shake(bin.multiplier >= 10 ? 5.0 : 3.0);
     mainEgg.setSquash(1.3, 0.7);
 
     if (this._allMainEggsLanded()) {
@@ -320,8 +323,11 @@ export class GameLoop {
     dupe.landedBin = bin;
 
     bin.glow();
+    bin.squash();
+    bin.popLabel();
     this.audio.eggLand();
     this.particles.emitDust(bin.x, -bin.y + 15);
+    this.particles.emitBinLand(bin.x, -bin.y + 10, BINS.COLORS[bin.index], bin.multiplier);
 
     const gold = this.score.calculateLandingBonus(bin.multiplier);
     this._bonusGold += gold;
@@ -618,8 +624,11 @@ export class GameLoop {
     autoEgg.landed = true;
 
     bin.glow();
+    bin.squash();
+    bin.popLabel();
     this.audio.eggLand(AUTO_CHICKEN.AUDIO_VOLUME_SCALE);
     this.particles.emitDust(bin.x, -bin.y + 15);
+    this.particles.emitBinLand(bin.x, -bin.y + 10, BINS.COLORS[bin.index], bin.multiplier);
 
     const baseGold = Math.max(1, Math.ceil(autoEgg.pegHits * SCORING.BASE_GOLD * bin.multiplier));
     const gold = baseGold * autoEgg.goldMultiplier;
@@ -858,7 +867,7 @@ export class GameLoop {
 
   update(delta) {
     this.chicken.update(delta);
-    this.board.update(delta);
+    this.board.update(delta, this.particles);
     this.particles.update(delta);
     this._updateSpecialPegCycle(delta);
 
