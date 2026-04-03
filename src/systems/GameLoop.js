@@ -376,7 +376,6 @@ export class GameLoop {
   }
 
   _handlePlayerUpgradeClick(upgradeId) {
-    if (this.state !== STATES.IDLE) return;
     const config = PLAYER_UPGRADES.find(u => u.id === upgradeId);
     if (!config) return;
 
@@ -454,7 +453,6 @@ export class GameLoop {
   }
 
   _handleUpgradeClick(typeId) {
-    if (this.state !== STATES.IDLE) return;
     const slot = this._getSlot(typeId);
     if (!slot) return;
 
