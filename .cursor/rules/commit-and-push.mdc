@@ -7,8 +7,31 @@ alwaysApply: true
 
 When you finish a task or the user indicates work is done:
 
-1. **Stage** all relevant changed files.
-2. **Commit** with a concise, descriptive message. Include the version string if game code was changed (see version-bump rule).
+1. **Stage** all relevant changed files with `git add -A`.
+2. **Commit** with a concise, descriptive message.
 3. **Push** to the remote immediately after a successful commit.
 
 Do not leave uncommitted work at the end of a task.
+
+## PowerShell Commit Format
+
+This workspace uses **PowerShell** — heredoc (`<<EOF`) and `&&` chaining do not work.
+Always use this pattern for multi-line commit messages:
+
+```powershell
+$msg = @"
+Short summary line
+
+Longer description body here.
+Multiple lines are fine.
+"@
+git commit -m $msg
+```
+
+For single-line commits, a plain string is fine:
+
+```powershell
+git commit -m "Short summary line"
+```
+
+Run `git add`, `git commit`, and `git push` as **separate sequential commands** (not chained with `&&`).
