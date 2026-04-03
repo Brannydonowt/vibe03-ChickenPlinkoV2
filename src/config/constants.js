@@ -19,12 +19,12 @@ export const GAME = {
 };
 
 export const BOARD = {
-  PEG_ROWS: 14,
+  PEG_ROWS: 12,
   PEG_COLS: 8,
   PEG_RADIUS: 7,
   PEG_SPACING_X: 44,
   PEG_SPACING_Y: 44,
-  TOP_OFFSET: 160,
+  TOP_OFFSET: 180,
   WALL_THICKNESS: 10,
 };
 
@@ -52,7 +52,7 @@ export const EGG = {
 
 export const CHICKEN = {
   BODY_RADIUS: 18,
-  Y_POS: 65,
+  Y_POS: 105,
   SPEED: 40,
   BOB_AMPLITUDE: 4,
   BOB_SPEED: 2.5,
@@ -85,10 +85,10 @@ export const CAMERA = {
   SHAKE_DECAY: 0.9,
   TRANSITION_DURATION: 1.5,
   SPEED_ZOOM_FACTOR: 0.0003,
-  BOARD_TOP_Y: 160,
-  BOARD_BOTTOM_Y: 806,
-  OVERVIEW_ZOOM: 1.05,
-  OVERVIEW_CENTER_Y: 420,
+  BOARD_TOP_Y: 180,
+  BOARD_BOTTOM_Y: 720,
+  OVERVIEW_ZOOM: 1.2,
+  OVERVIEW_CENTER_Y: 390,
 };
 
 export const SCORING = {
@@ -116,7 +116,7 @@ export const AUDIO = {
 };
 
 export const ENVIRONMENT = {
-  GROUND_Y: 810,
+  GROUND_Y: 725,
   GROUND_HEIGHT: 400,
   GROUND_WIDTH: 800,
   GROUND_COLOR: 0x5B8C3E,
@@ -141,7 +141,7 @@ export const POWERUP = {
 };
 
 export const AUTO_CHICKEN = {
-  Y_POS: 110,
+  Y_POS: 140,
   SCALE: 0.65,
   SPEED: 35,
   WARMUP_DURATION: 1.2,
