@@ -208,16 +208,162 @@
       letter-spacing: 0.3px;
     }
 
-    .version-label {
+    /* Settings Button */
+    .hud-top-right {
       position: absolute;
-      top: 14px; right: 14px;
+      top: 0; right: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      padding: 14px 16px;
+      gap: 6px;
+      z-index: 2;
+    }
+    .settings-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 40px; height: 40px;
+      background: rgba(0,0,0,0.45);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      border: 1.5px solid rgba(255,255,255,0.2);
+      border-radius: 50%;
+      cursor: pointer;
+      pointer-events: auto;
+      opacity: 0;
+      transform: scale(0.8);
+      transition: opacity 0.35s ease, transform 0.35s ease;
+      visibility: hidden;
+    }
+    .settings-btn.visible {
+      opacity: 1;
+      transform: scale(1);
+      visibility: visible;
+    }
+    .settings-btn:active { transform: scale(0.88); }
+    .settings-btn img {
+      width: 22px; height: 22px;
+      opacity: 0.75;
+    }
+
+    .version-label {
       font-size: 11px;
       font-weight: 600;
       color: rgba(255,255,255,0.35);
       letter-spacing: 0.3px;
       pointer-events: none;
-      z-index: 2;
       text-shadow: 0 1px 3px rgba(0,0,0,0.4);
+    }
+
+    /* Settings Panel */
+    .settings-panel {
+      position: absolute;
+      bottom: 0; left: 0;
+      width: 100%;
+      max-height: 55%;
+      background: rgba(18,18,30,0.92);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-top: 2px solid rgba(255,255,255,0.2);
+      border-radius: 20px 20px 0 0;
+      transform: translateY(100%);
+      transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+      pointer-events: none;
+      z-index: 31;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .settings-panel.open { transform: translateY(0); pointer-events: auto; }
+
+    .settings-panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 18px 10px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      flex-shrink: 0;
+    }
+    .settings-panel-title {
+      font-family: 'Lilita One', 'Impact', sans-serif;
+      font-size: 22px;
+      color: #fff;
+      letter-spacing: 1px;
+    }
+    .settings-panel-close {
+      display: flex; align-items: center; justify-content: center;
+      width: 36px; height: 36px;
+      background: rgba(255,255,255,0.08);
+      border: none; border-radius: 50%;
+      cursor: pointer; pointer-events: auto;
+      transition: background 0.2s ease;
+    }
+    .settings-panel-close:active { background: rgba(255,255,255,0.18); }
+    .settings-panel-close img {
+      width: 16px; height: 16px;
+      filter: brightness(0) invert(1);
+      opacity: 0.7;
+    }
+
+    .settings-panel-body {
+      padding: 12px 18px 24px;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .settings-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      pointer-events: auto;
+      cursor: pointer;
+    }
+    .settings-row:last-child { border-bottom: none; }
+    .settings-row-text {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .settings-label {
+      font-size: 15px;
+      font-weight: 700;
+      color: #fff;
+    }
+    .settings-desc {
+      font-size: 12px;
+      color: rgba(255,255,255,0.4);
+    }
+
+    .settings-toggle {
+      width: 44px; height: 24px;
+      background: rgba(255,255,255,0.15);
+      border-radius: 12px;
+      position: relative;
+      flex-shrink: 0;
+      transition: background 0.25s ease;
+      cursor: pointer;
+    }
+    .settings-toggle.on {
+      background: #FFD700;
+    }
+    .settings-toggle-knob {
+      position: absolute;
+      top: 2px; left: 2px;
+      width: 20px; height: 20px;
+      background: #fff;
+      border-radius: 50%;
+      transition: transform 0.25s ease;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+    }
+    .settings-toggle.on .settings-toggle-knob {
+      transform: translateX(20px);
     }
 
     .hud-top-center {
@@ -629,7 +775,7 @@
       50% { transform: translateX(-50%) translateY(-3px); }
     }
   </style>
-  <script type="module" crossorigin src="./assets/index-BYy7PhmY.js"></script>
+  <script type="module" crossorigin src="./assets/index-CACJR3P_.js"></script>
 </head>
 <body>
   <div id="game-viewport">
@@ -650,7 +796,12 @@
         <div class="goal-bar-progress" id="goal-bar-progress"></div>
       </div>
     </div>
-    <div class="version-label" id="version-label"></div>
+    <div class="hud-top-right">
+      <button class="settings-btn" id="settings-btn">
+        <img src="data:image/svg+xml,%3csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2064%2064'%3e%3cdefs%3e%3cstyle%3e.cls-1{fill:%23fff;}.cls-2{fill:none;}%3c/style%3e%3c/defs%3e%3ctitle%3eGear%20Flat%20White%3c/title%3e%3cg%20id='Layer_2'%20data-name='Layer%202'%3e%3cg%20id='Layer_2-2'%20data-name='Layer%202'%3e%3cpath%20class='cls-1'%20d='M59.49,37.37a28.42,28.42,0,0,0,0-10.72c-1.64-.17-3.35-.33-5.13-.47a22.87,22.87,0,0,0-2.43-5.85q1.74-2.05,3.29-4a28.18,28.18,0,0,0-7.58-7.58c-1.27,1-2.6,2.14-4,3.3a23,23,0,0,0-5.85-2.43c-.14-1.78-.3-3.5-.47-5.13a28.42,28.42,0,0,0-10.72,0c-.17,1.63-.33,3.35-.47,5.13a23,23,0,0,0-5.85,2.43c-1.36-1.16-2.69-2.26-4-3.3a28.18,28.18,0,0,0-7.58,7.58q1.55,1.92,3.29,4a22.87,22.87,0,0,0-2.43,5.85c-1.78.14-3.49.3-5.13.47a28.42,28.42,0,0,0,0,10.72c1.64.17,3.35.33,5.13.47a23,23,0,0,0,2.43,5.85c-1.16,1.36-2.26,2.69-3.29,4a27.9,27.9,0,0,0,7.58,7.58c1.27-1,2.6-2.13,4-3.29a23.39,23.39,0,0,0,5.85,2.43c.14,1.78.3,3.49.47,5.12a27.88,27.88,0,0,0,10.72,0c.17-1.63.33-3.34.47-5.12a23.39,23.39,0,0,0,5.85-2.43c1.36,1.16,2.69,2.26,4,3.29a27.9,27.9,0,0,0,7.58-7.58c-1-1.27-2.13-2.6-3.29-4a23,23,0,0,0,2.43-5.85C56.14,37.7,57.85,37.54,59.49,37.37ZM32,44.23A12.22,12.22,0,1,1,44.22,32,12.22,12.22,0,0,1,32,44.23Z'/%3e%3crect%20class='cls-2'%20width='64'%20height='64'/%3e%3c/g%3e%3c/g%3e%3c/svg%3e" alt="Settings" />
+      </button>
+      <div class="version-label" id="version-label"></div>
+    </div>
     <div class="hud-top-center">
       <div class="run-gold-display" id="run-gold-display">
         <img class="run-coin-icon" src="data:image/svg+xml,%3csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2064%2064'%3e%3cdefs%3e%3cstyle%3e.cls-1{fill:none;}.cls-2{fill:%23de6529;}.cls-3{fill:%23fc9504;}.cls-4{fill:%23fdbc0d;}%3c/style%3e%3c/defs%3e%3ctitle%3eCoin%3c/title%3e%3cg%20id='Layer_2'%20data-name='Layer%202'%3e%3cg%20id='Layer_2-2'%20data-name='Layer%202'%3e%3crect%20class='cls-1'%20width='64'%20height='64'/%3e%3cpath%20class='cls-2'%20d='M26.43,4H37.57V9.59C42.08,14.7,45,22.84,45,32s-2.92,17.3-7.43,22.41V60H26.43C16.17,60,7.86,47.46,7.86,32S16.17,4,26.43,4Z'/%3e%3cpath%20class='cls-3'%20d='M45,32a42,42,0,0,1-.27,4.81H8.14A42,42,0,0,1,7.86,32c0-8,2.25-15.29,5.86-20.4H39.15C42.75,16.71,45,24,45,32Z'/%3e%3cellipse%20class='cls-4'%20cx='37.57'%20cy='32'%20rx='18.57'%20ry='28'/%3e%3cellipse%20class='cls-3'%20cx='38.84'%20cy='32'%20rx='10.32'%20ry='17.65'/%3e%3cpath%20class='cls-2'%20d='M44.88,32c0-8.49-3.51-15.57-8.18-17.26a6.28,6.28,0,0,1,2.14-.39c5.7,0,10.32,7.9,10.32,17.65S44.54,49.65,38.84,49.65a6.28,6.28,0,0,1-2.14-.39C41.37,47.57,44.88,40.49,44.88,32Z'/%3e%3c/g%3e%3c/g%3e%3c/svg%3e" alt="" />
@@ -690,6 +841,37 @@
       <div class="upgrade-panel-body">
         <div class="upgrade-panel-list" id="upgrade-tab-player"></div>
         <div class="upgrade-panel-list" id="upgrade-tab-auto" style="display:none"></div>
+      </div>
+    </div>
+    <div class="settings-panel" id="settings-panel">
+      <div class="settings-panel-header">
+        <span class="settings-panel-title">Settings</span>
+        <button class="settings-panel-close" id="settings-close">
+          <img src="data:image/svg+xml,%3csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2064%2064'%3e%3cdefs%3e%3cstyle%3e.cls-1{fill:%231a1a1a;opacity:0;}.cls-2{fill:%23ba2d3e;}.cls-3{fill:%23e62e49;}.cls-4{fill:%23fff;}%3c/style%3e%3c/defs%3e%3ctitle%3eX%20Button%3c/title%3e%3cg%20id='Layer_2'%20data-name='Layer%202'%3e%3cg%20id='Layer_3'%20data-name='Layer%203'%3e%3crect%20class='cls-1'%20width='64'%20height='64'/%3e%3crect%20class='cls-2'%20x='9'%20y='6.5'%20width='46'%20height='51'%20rx='5'/%3e%3crect%20class='cls-3'%20x='9'%20y='6.5'%20width='46'%20height='46'%20rx='5'/%3e%3cpath%20class='cls-4'%20d='M37.91,29.5,44.46,23a1.17,1.17,0,0,0,0-1.63L40.18,17a1.17,1.17,0,0,0-1.63,0L32,23.59,25.45,17a1.17,1.17,0,0,0-1.63,0l-4.28,4.28a1.17,1.17,0,0,0,0,1.63l6.55,6.55-6.55,6.55a1.17,1.17,0,0,0,0,1.63L23.82,42a1.17,1.17,0,0,0,1.63,0L32,35.41,38.55,42a1.17,1.17,0,0,0,1.63,0l4.28-4.28a1.17,1.17,0,0,0,0-1.63Z'/%3e%3c/g%3e%3c/g%3e%3c/svg%3e" alt="Close" />
+        </button>
+      </div>
+      <div class="settings-panel-body">
+        <div class="settings-row" id="setting-fast-mode">
+          <div class="settings-row-text">
+            <span class="settings-label">Fast Mode</span>
+            <span class="settings-desc">Skip camera follow, speed up hatching</span>
+          </div>
+          <div class="settings-toggle"><div class="settings-toggle-knob"></div></div>
+        </div>
+        <div class="settings-row" id="setting-sfx">
+          <div class="settings-row-text">
+            <span class="settings-label">Sound Effects</span>
+            <span class="settings-desc">Peg hits, hatching, coins</span>
+          </div>
+          <div class="settings-toggle on"><div class="settings-toggle-knob"></div></div>
+        </div>
+        <div class="settings-row" id="setting-music">
+          <div class="settings-row-text">
+            <span class="settings-label">Music</span>
+            <span class="settings-desc">Background music</span>
+          </div>
+          <div class="settings-toggle on"><div class="settings-toggle-knob"></div></div>
+        </div>
       </div>
     </div>
     <div class="screen-flash" id="screen-flash"></div>
