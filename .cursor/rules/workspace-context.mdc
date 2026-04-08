@@ -1,0 +1,36 @@
+---
+description: Web demo context — this project's role in the multi-workspace Chicken Plinko development
+globs: 
+alwaysApply: true
+---
+
+# Workspace Context — ChickenPlinkoV2
+
+## This Project
+
+**ChickenPlinkoV2** is the **web reference/demo** of Chicken Plinko — a hyper-casual 2D Plinko game.
+- Stack: Three.js (rendering) + Matter.js (physics) + Vite 6 + vanilla JS
+- Deployed to GitHub Pages
+- Game design doc: `GameDesignDoc.md`
+
+## Relationship to MHE Project
+
+This web version is being **ported to Meta Horizon Engine (MHE)**. The MHE project lives in a separate workspace:
+- Path: `C:\Users\Brand\Documents\MetaProjects\CC_Dev_ChickenPlinko\`
+- The MHE port uses DrawingSurface (2D), custom physics (no Matter.js), and XAML UI
+- Changes here may inform MHE implementation but this is **not the production target**
+
+## Shared Documentation
+
+The MetaProjects workspace contains shared MHE docs:
+- `C:\Users\Brand\Documents\MetaProjects\Documentation\Best Practices.md`
+- `C:\Users\Brand\Documents\MetaProjects\Documentation\API Reference\` (Worlds SDK 0.0.9)
+
+## Architecture Quick Reference
+
+- Entry: `src/main.js` — bootstrap + animation loop
+- Config: `src/config/constants.js` — all tunable values + VERSION
+- Core: `src/core/` — Renderer, Physics, Camera, InputManager, AudioManager, AssetLoader
+- Entities: `src/entities/` — Chicken, Egg, Peg, Bin, AutoChicken
+- Systems: `src/systems/` — GameLoop (state machine), Board, ParticleSystem, ScoreManager, Environment, Settings
+- UI: `src/ui/HUD.js` — DOM overlay for gold, upgrades, settings
