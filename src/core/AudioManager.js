@@ -96,11 +96,6 @@ export class AudioManager {
     this._play((freq + comboBoost) * 1.5, 0.05, 'sine', AUDIO.MASTER_VOLUME * 0.2 * volumeScale);
   }
 
-  layEgg() {
-    this._play(400, 0.12, 'sine', AUDIO.MASTER_VOLUME * 0.5);
-    this._play(600, 0.08, 'sine', AUDIO.MASTER_VOLUME * 0.3);
-  }
-
   chickenCluck(volumeScale = 1.0) {
     this._playSound('chickenCluck', AUDIO.MASTER_VOLUME * 0.8 * volumeScale);
   }

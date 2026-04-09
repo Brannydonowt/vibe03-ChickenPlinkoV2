@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { EGG, POWERUP } from '../config/constants.js';
+import { EGG, POWERUP, SCORING } from '../config/constants.js';
 
 export class Egg {
   constructor(x, y, physics, texture, isDuplicate = false, eggConfig = null) {
@@ -8,6 +8,9 @@ export class Egg {
     this.goldMultiplier = eggConfig?.goldMultiplier || 1;
     this.typeId = eggConfig?.typeId || null;
     this.pegHits = 0;
+    this.combo = 0;
+    this.lastHitTime = 0;
+    this.runGold = 0;
     this.alive = true;
     this.landed = false;
     this.landedBin = null;
@@ -54,6 +57,17 @@ export class Egg {
     const vx = this.body.velocity.x;
     const vy = this.body.velocity.y;
     return Math.sqrt(vx * vx + vy * vy);
+  }
+
+  hitPeg(time) {
+    this.pegHits++;
+    if (time - this.lastHitTime < SCORING.COMBO_WINDOW_MS) {
+      this.combo = Math.min(this.combo + 1, SCORING.COMBO_MAX);
+    } else {
+      this.combo = 1;
+    }
+    this.lastHitTime = time;
+    return this.combo;
   }
 
   setSquash(sx, sy) {

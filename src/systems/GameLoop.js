@@ -45,9 +45,6 @@ export class GameLoop {
     this._drumrollTimer = 0;
     this._coinFountainActive = false;
 
-    this._hatchEggX = 0;
-    this._hatchEggY = 0;
-
     this._dupliBounceActive = false;
     this._dupliBounceInFlight = false;
     this._duplicateEggs = [];
@@ -166,18 +163,19 @@ export class GameLoop {
 
   _handlePegHit(peg, mainEgg) {
     peg.hit();
-    mainEgg.pegHits++;
     this.board.rippleFrom(peg);
 
     const now = performance.now();
-    const { gold, combo } = this.score.onPegHit(now);
+    const combo = mainEgg.hitPeg(now);
+
+    const gold = SCORING.BASE_GOLD * combo;
     const pegMulti = peg.specialType ? SPECIAL_PEGS[peg.specialType].multiplier : 1;
     const finalGold = gold * pegMulti;
-    if (pegMulti > 1) {
-      const extra = finalGold - gold;
-      this.score.totalGold += extra;
-      this.score.currentRunGold += extra;
-    }
+
+    mainEgg.runGold += finalGold;
+    this.score.pegHits++;
+    this.score.currentRunGold += finalGold;
+    this.score.totalGold += finalGold;
 
     const normalizedY = this.board.getNormalizedY(peg.y);
     this.audio.pegHit(normalizedY, combo);
@@ -364,13 +362,6 @@ export class GameLoop {
       if (dupe.alive) dupe.destroy(this.renderer.scene);
     }
     this._duplicateEggs = [];
-  }
-
-  _cleanupMainEggs() {
-    for (const e of this._mainEggs) {
-      if (e !== this.egg && e.alive) e.destroy(this.renderer.scene);
-    }
-    this._mainEggs = [];
   }
 
   /* --- Player upgrade system --- */
@@ -652,13 +643,16 @@ export class GameLoop {
     if (gold > 0) {
       const screenPos = this.renderer.projectToScreen(ex, ey);
       const numCoins = Math.min(Math.max(Math.ceil(Math.sqrt(gold)), 2), 12);
-      const goldPerCoin = Math.round(gold / numCoins);
+      const goldPerCoin = Math.max(1, Math.floor(gold / numCoins));
+      const autoRemainder = gold - goldPerCoin * numCoins;
 
       this.hud.spawnCoinFountain(
         screenPos.x, screenPos.y,
         numCoins, goldPerCoin,
-        (g) => {
-          this.score.collectGold(g);
+        (g, collected, total) => {
+          let award = g;
+          if (collected === total) award += autoRemainder;
+          this.score.collectGold(award);
           this.hud.setGold(this.score.totalGold);
           this._syncAllUpgradeRows();
           this._updateGoalBar();
@@ -809,6 +803,7 @@ export class GameLoop {
     this.particles.emitEggPop(baseX, -y);
 
     if (!Settings.fastMode) {
+      this.camera.snapTo(baseX, y);
       this.camera.setTargetZoom(CAMERA.DROP_ZOOM_START);
     }
   }
@@ -841,7 +836,7 @@ export class GameLoop {
     this._hasPlayedRound = true;
     this._roundCount++;
 
-    if (this._roundCount === 2) {
+    if (this._roundCount === 2 && !Settings.wasUserSet('fastMode')) {
       Settings.set('fastMode', true);
     }
 
@@ -1113,9 +1108,6 @@ export class GameLoop {
         const ex = this.egg.getX();
         const ey = -this.egg.getY();
 
-        this._hatchEggX = ex;
-        this._hatchEggY = ey;
-
         this.hud.screenFlash();
         this.audio.hatch();
         this.particles.emitHatchExplosion(ex, ey);
@@ -1149,15 +1141,18 @@ export class GameLoop {
 
     const screenPos = this.renderer.projectToScreen(worldX, worldY);
     const numCoins = Math.min(Math.max(Math.ceil(Math.sqrt(this._landingGold)), 3), 20);
-    const goldPerCoin = Math.round(this._landingGold / numCoins);
+    const goldPerCoin = Math.max(1, Math.floor(this._landingGold / numCoins));
+    const remainder = this._landingGold - goldPerCoin * numCoins;
     let totalCollected = 0;
 
     this.hud.spawnCoinFountain(
       screenPos.x, screenPos.y,
       numCoins, goldPerCoin,
       (gold, collected, total) => {
-        totalCollected += gold;
-        this.score.collectGold(gold);
+        let award = gold;
+        if (collected === total) award += remainder;
+        totalCollected += award;
+        this.score.collectGold(award);
         this.hud.setGold(this.score.totalGold);
         this.audio.coinCollect(collected, total);
       },

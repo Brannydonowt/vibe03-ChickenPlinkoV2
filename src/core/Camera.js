@@ -37,6 +37,13 @@ export class Camera {
     }
   }
 
+  snapTo(x, y) {
+    this.targetX = x;
+    this.currentX = x;
+    this.targetY = -y;
+    this.currentY = -y;
+  }
+
   setTargetZoom(z) {
     this.targetZoom = z;
   }

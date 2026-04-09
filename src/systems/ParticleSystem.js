@@ -22,7 +22,7 @@ export class ParticleSystem {
     this.scene = scene;
     this.particles = [];
 
-    this._maxParticles = 300;
+    this._maxParticles = 500;
     const geo = new THREE.BufferGeometry();
     const positions = new Float32Array(this._maxParticles * 3);
     const colors = new Float32Array(this._maxParticles * 3);
@@ -184,26 +184,39 @@ export class ParticleSystem {
   }
 
   emitBinLand(x, y, color, multiplier) {
-    const scale = { 1: 1, 3: 1.5, 5: 2.2, 10: 3.5 }[multiplier] || 1;
-    const count = Math.round(6 * scale);
+    const scale = { 1: 1, 3: 1.8, 5: 2.8, 10: 4.5 }[multiplier] || 1;
+    const count = Math.round(15 * scale);
 
     this.emit(x, y, count, {
       color,
-      speed: 50 + multiplier * 8,
-      life: 0.4 + multiplier * 0.03,
-      size: 3 + scale,
-      spread: multiplier >= 10 ? Math.PI * 2 : Math.PI * 1.2,
+      speed: 80 + multiplier * 12,
+      life: 0.6 + multiplier * 0.05,
+      size: 5 + scale * 2,
+      spread: multiplier >= 10 ? Math.PI * 2 : Math.PI * 1.4,
       angle: -Math.PI / 2,
-      gravity: 150,
+      gravity: 120,
       drag: 0.96,
     });
 
-    if (multiplier >= 10) {
-      this.emit(x, y, 10, {
+    if (multiplier >= 5) {
+      this.emit(x, y, Math.round(8 * scale), {
         color: 0xFFD700,
-        speed: 100,
-        life: 0.5,
-        size: 2.5,
+        speed: 40 + multiplier * 6,
+        life: 0.8 + multiplier * 0.04,
+        size: 4 + scale,
+        spread: Math.PI * 2,
+        angle: 0,
+        gravity: 30,
+        drag: 0.94,
+      });
+    }
+
+    if (multiplier >= 10) {
+      this.emit(x, y, 25, {
+        color: 0xFFD700,
+        speed: 160,
+        life: 0.7,
+        size: 5,
         spread: Math.PI * 2,
         angle: 0,
         gravity: 60,
