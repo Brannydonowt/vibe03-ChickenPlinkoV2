@@ -35,6 +35,15 @@ export class Board {
         this.pegs.push(peg);
         this.scene.add(peg.mesh);
       }
+
+      if (isOffset) {
+        const y = BOARD.TOP_OFFSET + row * BOARD.PEG_SPACING_Y;
+        for (const edgeX of [startX, -startX]) {
+          const peg = new Peg(edgeX, y, this.physics);
+          this.pegs.push(peg);
+          this.scene.add(peg.mesh);
+        }
+      }
     }
   }
 
